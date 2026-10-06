@@ -225,7 +225,7 @@ class Provider::Plaid
 
     def country_codes
       if eu?
-        [ "ES", "NL", "FR", "IE", "DE", "IT", "PL", "DK", "NO", "SE", "EE", "LT", "LV", "PT", "BE" ]  # EU supported countries
+        [ "GB", "ES", "NL", "FR", "IE", "DE", "IT", "PL", "DK", "NO", "SE", "EE", "LT", "LV", "PT", "BE" ]  # Plaid Europe/UK supported countries
       else
         [ "US", "CA" ] # US + CA only
       end
