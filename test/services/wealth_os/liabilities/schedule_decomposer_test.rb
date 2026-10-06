@@ -1,0 +1,32 @@
+require "test_helper"
+
+class WealthOs::Liabilities::ScheduleDecomposerTest < ActiveSupport::TestCase
+  test "persists the schedule's principal and interest separately" do
+    loan = Loan.create!(
+      subtype: "mortgage",
+      interest_rate: 3.5,
+      term_months: 360,
+      rate_type: "fixed",
+      start_date: Date.new(2026, 1, 1)
+    )
+    account = Account.create!(
+      family: families(:dylan_family),
+      name: "Mortgage",
+      balance: 500_000,
+      currency: "USD",
+      accountable: loan
+    )
+
+    scheduled = loan.amortization_schedule.payments.first
+    result = WealthOs::Liabilities::ScheduleDecomposer.call(
+      loan: loan,
+      payment_date: scheduled.date,
+      fee_amount: 50
+    )
+
+    assert_equal scheduled.principal.amount, result.principal_amount
+    assert_equal scheduled.interest.amount, result.interest_amount
+    assert_equal scheduled.payment.amount + 50, result.total_amount
+    assert_equal scheduled.interest.amount + 50, result.financing_cost
+  end
+end
