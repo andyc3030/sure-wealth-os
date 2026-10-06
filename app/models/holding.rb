@@ -1,5 +1,6 @@
 class Holding < ApplicationRecord
   include Monetizable, Gapfillable
+  include SourceTraceable
 
   monetize :amount
 
