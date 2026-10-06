@@ -38,7 +38,8 @@ class CorporateAction < ApplicationRecord
 
     def split_ratio_present
       return unless split?
-      return if ratio_numerator.to_d.positive? && ratio_denominator.to_d.positive?
+      return if ratio_numerator.present? && ratio_denominator.present? &&
+        ratio_numerator.to_d.positive? && ratio_denominator.to_d.positive?
 
       errors.add(:base, "split actions require a positive numerator and denominator")
     end
