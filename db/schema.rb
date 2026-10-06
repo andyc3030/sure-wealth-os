@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2976,6 +2976,108 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.index ["subject_type", "subject_id"], name: "index_reconciliation_events_on_subject"
   end
 
+  create_table "corporate_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "action_type", null: false
+    t.decimal "cash_amount", precision: 19, scale: 4
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3
+    t.date "effective_date", null: false
+    t.string "external_id"
+    t.uuid "family_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.uuid "raw_source_record_id"
+    t.decimal "ratio_denominator", precision: 34, scale: 18
+    t.decimal "ratio_numerator", precision: 34, scale: 18
+    t.uuid "security_id", null: false
+    t.string "source_system"
+    t.string "status", default: "confirmed", null: false
+    t.uuid "successor_security_id"
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "security_id", "effective_date"], name: "idx_corporate_actions_position_math"
+    t.index ["family_id", "source_system", "external_id"], name: "idx_corporate_actions_source_identity", unique: true, where: "((external_id IS NOT NULL) AND (source_system IS NOT NULL))"
+    t.index ["family_id"], name: "index_corporate_actions_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_corporate_actions_on_raw_source_record_id"
+    t.index ["security_id"], name: "index_corporate_actions_on_security_id"
+    t.index ["successor_security_id"], name: "index_corporate_actions_on_successor_security_id"
+    t.check_constraint "cash_amount IS NULL OR cash_amount >= 0::numeric", name: "chk_corporate_actions_cash_non_negative"
+    t.check_constraint "ratio_denominator IS NULL OR ratio_denominator > 0::numeric", name: "chk_corporate_actions_ratio_den_positive"
+    t.check_constraint "ratio_numerator IS NULL OR ratio_numerator > 0::numeric", name: "chk_corporate_actions_ratio_num_positive"
+  end
+
+  create_table "income_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.date "accrual_end"
+    t.date "accrual_start"
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.decimal "cash_amount", precision: 19, scale: 4
+    t.string "confidence", default: "unknown", null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.date "declared_on"
+    t.date "effective_date", null: false
+    t.string "event_key", limit: 255, null: false
+    t.date "ex_date"
+    t.uuid "family_id", null: false
+    t.decimal "fees", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "income_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "method"
+    t.date "payable_on"
+    t.uuid "raw_source_record_id"
+    t.uuid "security_id"
+    t.string "source_system"
+    t.string "state", null: false
+    t.uuid "supersedes_id"
+    t.decimal "tax_withheld", precision: 19, scale: 4, default: "0.0", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_income_events_on_account_id"
+    t.index ["family_id", "event_key", "created_at"], name: "idx_income_events_lifecycle"
+    t.index ["family_id", "state", "effective_date"], name: "idx_income_events_reporting"
+    t.index ["family_id"], name: "index_income_events_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_income_events_on_raw_source_record_id"
+    t.index ["security_id"], name: "index_income_events_on_security_id"
+    t.index ["supersedes_id"], name: "idx_income_events_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
+    t.index ["supersedes_id"], name: "index_income_events_on_supersedes_id"
+    t.check_constraint "amount >= 0::numeric", name: "chk_income_events_amount_non_negative"
+    t.check_constraint "cash_amount IS NULL OR cash_amount >= 0::numeric", name: "chk_income_events_cash_non_negative"
+    t.check_constraint "fees >= 0::numeric", name: "chk_income_events_fees_non_negative"
+    t.check_constraint "tax_withheld >= 0::numeric", name: "chk_income_events_tax_non_negative"
+  end
+
+  create_table "liability_payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.uuid "entry_id"
+    t.string "external_id"
+    t.uuid "family_id", null: false
+    t.decimal "fee_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "insurance_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "interest_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "loan_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.date "payment_date", null: false
+    t.decimal "principal_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "raw_source_record_id"
+    t.integer "schedule_payment_number"
+    t.string "source_system"
+    t.string "state", default: "scheduled", null: false
+    t.decimal "total_amount", precision: 19, scale: 4, null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_liability_payments_on_account_id"
+    t.index ["entry_id"], name: "index_liability_payments_on_entry_id"
+    t.index ["family_id", "source_system", "external_id"], name: "idx_liability_payments_source_identity", unique: true, where: "((external_id IS NOT NULL) AND (source_system IS NOT NULL))"
+    t.index ["family_id"], name: "index_liability_payments_on_family_id"
+    t.index ["loan_id", "payment_date"], name: "idx_liability_payments_schedule"
+    t.index ["loan_id"], name: "index_liability_payments_on_loan_id"
+    t.index ["raw_source_record_id"], name: "index_liability_payments_on_raw_source_record_id"
+    t.check_constraint "fee_amount >= 0::numeric", name: "chk_liability_payments_fee_amount_non_negative"
+    t.check_constraint "insurance_amount >= 0::numeric", name: "chk_liability_payments_insurance_amount_non_negative"
+    t.check_constraint "interest_amount >= 0::numeric", name: "chk_liability_payments_interest_amount_non_negative"
+    t.check_constraint "principal_amount >= 0::numeric", name: "chk_liability_payments_principal_amount_non_negative"
+    t.check_constraint "total_amount >= 0::numeric", name: "chk_liability_payments_total_amount_non_negative"
+  end
+
   create_table "source_authority_rules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
@@ -3230,6 +3332,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
   add_foreign_key "webauthn_credentials", "users"
   add_foreign_key "wise_accounts", "wise_items", on_delete: :cascade
   add_foreign_key "wise_items", "families"
+  add_foreign_key "corporate_actions", "families", on_delete: :cascade
+  add_foreign_key "corporate_actions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_actions", "securities", on_delete: :cascade
+  add_foreign_key "corporate_actions", "securities", column: "successor_security_id", on_delete: :nullify
+  add_foreign_key "income_events", "accounts", on_delete: :nullify
+  add_foreign_key "income_events", "families", on_delete: :cascade
+  add_foreign_key "income_events", "income_events", column: "supersedes_id", on_delete: :nullify
+  add_foreign_key "income_events", "raw_source_records", on_delete: :nullify
+  add_foreign_key "income_events", "securities", on_delete: :nullify
+  add_foreign_key "liability_payments", "accounts", on_delete: :cascade
+  add_foreign_key "liability_payments", "entries", on_delete: :nullify
+  add_foreign_key "liability_payments", "families", on_delete: :cascade
+  add_foreign_key "liability_payments", "loans", on_delete: :cascade
+  add_foreign_key "liability_payments", "raw_source_records", on_delete: :nullify
   add_foreign_key "raw_source_records", "account_providers", on_delete: :nullify
   add_foreign_key "raw_source_records", "accounts", on_delete: :nullify
   add_foreign_key "raw_source_records", "families", on_delete: :cascade
