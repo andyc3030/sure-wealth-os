@@ -285,6 +285,11 @@ class Account::ProviderImportAdapter
       entry.save!
       entry.transaction.save! if entry.transaction.changed?
 
+      # Project actual booked investment income into the Wealth OS lifecycle.
+      # Forecast/accrual/declaration sources can later supersede into the same
+      # economic event; the projector is idempotent for an unchanged booked row.
+      WealthOs::Income::ReceivedTransactionProjector.call(entry)
+
       # Auto-resolve any open Goal pledges on this account whose tolerance
       # window matches the posted transaction. Idempotent via the partial-unique
       # index on transactions.extra->'goal'->>'pledge_id'.
