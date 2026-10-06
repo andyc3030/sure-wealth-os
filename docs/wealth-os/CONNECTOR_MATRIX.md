@@ -18,8 +18,10 @@ This file records planned routes and current verification state. A route is **no
 | Bank | Santander | Current | UK | GBP | Plaid (Europe / UK) | Lunch Flow / verified manual | **Provider support verified; fork code enabled; live consent test pending** |
 | Bank | NatWest | Current | UK | GBP | Plaid (Europe / UK) | Enable Banking | **Provider support verified; fork code enabled; live consent test pending** |
 | Bank | Revolut | Current / cash | UK | GBP / multi-currency | Plaid (Europe / UK) | Verified manual | **Provider support verified; live consent test pending** |
+| Savings | Kent Reliance | Savings / Cash ISA / fixed-term deposit | UK | GBP | Verified manual | Future secure connector if verified | **No Sure-compatible secure connector verified; online statements available for manual verification** |
 | Broker | AJ Bell | Investment accounts | UK | GBP / multi-currency | SnapTrade read-only | Lunch Flow / verified manual | **Connector support verified; credential-based hosted auth; explicit security acceptance + live test pending** |
 | Broker | Charles Schwab | Brokerage | US | USD / multi-currency | SnapTrade read-only | Verified manual | **Connector support verified; OAuth; broker approval + live test pending** |
+| Broker | IC Markets Global | cTrader Raw / CFD trading account | Global | GBP / USD / account currency | cTrader Open API OAuth `accounts` scope | Verified manual | **Direct read-only API route verified; dedicated Sure provider adapter required; live OAuth/reconciliation pending** |
 
 ## UK connector verification — 2026-10-06
 
@@ -183,3 +185,42 @@ Plaid's current UK coverage lists Revolut for Account Data. It can use the same 
 Evidence:
 
 - https://plaid.com/docs/institutions/europe/
+
+
+## Kent Reliance verification — 2026-10-06
+
+Kent Reliance provides secure Online Services with real-time statements and downloadable account documents, but no Sure-compatible Open Banking/API route has been verified for this phase.
+
+Evidence:
+
+- https://www.kentreliance.co.uk/new-online-services-support
+- https://www.kentreliance.co.uk/login/
+
+Phase 2 classification:
+
+- route: **Verified Manual**;
+- capture balance, account type, contractual rate, maturity date where applicable, interest paid/accrued, statement date and verification timestamp;
+- attach/source the value to a Kent Reliance statement or official account document;
+- review at the configured manual-review interval;
+- do not scrape Kent Reliance Online Services or store login credentials.
+
+## IC Markets / cTrader verification — 2026-10-06
+
+IC Markets cTrader accounts can use the official cTrader Open API. cTrader Open API uses OAuth 2.0 and exposes two relevant scopes:
+
+- `accounts` — view-only account information/statistics; trading operations are impossible;
+- `trading` — full trading authority.
+
+Evidence:
+
+- https://help.ctrader.com/open-api/account-authentication/
+- https://help.ctrader.com/open-api/
+- https://help.ctrader.com/open-api/api-application/
+
+Wealth OS rule:
+
+- request **only** `scope=accounts`;
+- explicitly reject/never request `scope=trading`;
+- build a dedicated Sure cTrader provider adapter before production use;
+- ingest account identity, balance/equity, margin, positions, pending orders, historical deals/trades, commissions, swaps/financing and timestamps where the API exposes them;
+- do not expose order placement or other trading operations anywhere in Wealth OS or AI/MCP.
