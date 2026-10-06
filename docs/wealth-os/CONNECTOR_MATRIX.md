@@ -17,6 +17,9 @@ This file records planned routes and current verification state. A route is **no
 |---|---|---|---|---|---|---|---|
 | Bank | Santander | Current | UK | GBP | Plaid (Europe / UK) | Lunch Flow / verified manual | **Provider support verified; fork code enabled; live consent test pending** |
 | Bank | NatWest | Current | UK | GBP | Plaid (Europe / UK) | Enable Banking | **Provider support verified; fork code enabled; live consent test pending** |
+| Bank | Revolut | Current / cash | UK | GBP / multi-currency | Plaid (Europe / UK) | Verified manual | **Provider support verified; live consent test pending** |
+| Broker | AJ Bell | Investment accounts | UK | GBP / multi-currency | SnapTrade read-only | Lunch Flow / verified manual | **Connector support verified; credential-based hosted auth; explicit security acceptance + live test pending** |
+| Broker | Charles Schwab | Brokerage | US | USD / multi-currency | SnapTrade read-only | Verified manual | **Connector support verified; OAuth; broker approval + live test pending** |
 
 ## UK connector verification — 2026-10-06
 
@@ -131,3 +134,52 @@ For lenders additionally verify:
 - If no secure connector exists, use the verified-manual workflow.
 - Do not classify a connector as adequate merely because it returns a balance.
 - Payment-initiation capability offered by a provider must not be requested or exposed by Wealth OS.
+
+
+## Brokerage connector verification — 2026-10-06
+
+### SnapTrade + Sure
+
+Sure's native SnapTrade client is already constrained to read-only connectivity:
+
+- OAuth authorization defaults to `scope: "read"`;
+- connection portal requests use `connectionType: "read"`;
+- Sure imports accounts, balances, positions and activities;
+- Sure does not expose SnapTrade trading endpoints in this connector path.
+
+### AJ Bell
+
+SnapTrade currently lists AJ Bell as **Read Only** and available once SnapTrade production access is approved.
+
+Evidence:
+
+- https://docs.snaptrade.com/docs/broker-access-guide
+- https://snaptrade.com/brokerage-integrations/aj-bell-api
+
+Important security distinction:
+
+- AJ Bell does not expose a public developer API;
+- SnapTrade's AJ Bell integration uses a hosted credential-based connection rather than OAuth;
+- Wealth OS/Sure must never receive, log or store the AJ Bell username/password;
+- this route is acceptable only as a supported third-party connector after explicit security acceptance and live verification.
+
+Do not classify AJ Bell as equivalent to an OAuth/Open Banking connection.
+
+### Charles Schwab
+
+SnapTrade currently lists Schwab as **Read Only** after broker approval, with OAuth authentication. SnapTrade's public guide indicates approval is required before the connection becomes available.
+
+Evidence:
+
+- https://docs.snaptrade.com/docs/broker-access-guide
+- https://snaptrade.com/brokerage-integrations/schwab-api
+
+Use read-only access only. Do not provide separate Schwab trading API keys.
+
+### Revolut UK
+
+Plaid's current UK coverage lists Revolut for Account Data. It can use the same Plaid (Europe / UK) route added in this phase.
+
+Evidence:
+
+- https://plaid.com/docs/institutions/europe/
