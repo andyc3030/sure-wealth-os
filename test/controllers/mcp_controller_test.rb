@@ -37,7 +37,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     token = Doorkeeper::AccessToken.create!( # pipelock:ignore
       application: app,
       resource_owner_id: @user.id,
-      scopes: "read_write",
+      scopes: "read",
       expires_in: 1.year
     )
 
@@ -62,7 +62,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :created
     app = Doorkeeper::Application.find_by!(uid: JSON.parse(response.body)["client_id"])
-    assert_equal "read_write", app.scopes.to_s
+    assert_equal "read", app.scopes.to_s
 
     sign_in(@user)
     verifier = SecureRandom.urlsafe_base64(64)
@@ -90,7 +90,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     token_response = JSON.parse(response.body)
-    assert_equal "read_write", token_response["scope"]
+    assert_equal "read", token_response["scope"]
 
     post "/mcp", params: jsonrpc_request("initialize").to_json,
          headers: mcp_headers(token_response["access_token"])
@@ -99,7 +99,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     assert_mcp_initialize_response(JSON.parse(response.body)["result"])
   end
 
-  test "rejects token with read-only scope" do
+  test "rejects token without read scope" do
     app = Doorkeeper::Application.create!(
       name: "Test MCP Client #{SecureRandom.hex(4)}",
       redirect_uri: "https://claude.ai/callback",
@@ -108,7 +108,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     token = Doorkeeper::AccessToken.create!( # pipelock:ignore
       application: app,
       resource_owner_id: @user.id,
-      scopes: "read",
+      scopes: "read_write",
       expires_in: 1.year
     )
 
@@ -127,7 +127,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     token = Doorkeeper::AccessToken.create!( # pipelock:ignore
       application: app,
       resource_owner_id: @user.id,
-      scopes: "read_write",
+      scopes: "read",
       expires_in: -1.second # already expired at creation time
     )
 
@@ -148,7 +148,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     token = Doorkeeper::AccessToken.create!( # pipelock:ignore
       application: app,
       resource_owner_id: inactive_user.id,
-      scopes: "read_write",
+      scopes: "read",
       expires_in: 1.year
     )
 
@@ -316,8 +316,15 @@ class McpControllerTest < ActionDispatch::IntegrationTest
       assert_includes tool_names, "get_holdings"
       assert_includes tool_names, "get_balance_sheet"
       assert_includes tool_names, "get_income_statement"
-      assert_includes tool_names, "update_transaction"
-      assert_includes tool_names, "update_budget"
+
+      %w[
+        import_bank_statement create_goal create_tag update_tag
+        create_category update_category update_transaction create_transaction
+        delete_transaction update_budget upload_account_statement record_valuation
+        create_bill update_bill record_bill_payment
+      ].each do |write_tool|
+        assert_not_includes tool_names, write_tool
+      end
 
       # Each tool has required fields
       tools.each do |tool|
@@ -497,75 +504,27 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "tools/call round-trips an upload through upload_account_statement" do
-    @user.update!(preferences: (@user.preferences || {}).merge("preview_features_enabled" => true))
-    content = "date,amount\n2024-02-01,7\n"
+  test "tools/call rejects write-capable tools" do
+    write_tools = %w[
+      import_bank_statement create_goal create_tag update_tag
+      create_category update_category update_transaction create_transaction
+      delete_transaction update_budget upload_account_statement record_valuation
+      create_bill update_bill record_bill_payment
+    ]
 
     with_mcp_env do
-      assert_difference "AccountStatement.count", 1 do
-        post "/mcp", params: jsonrpc_request("tools/call", {
-          name: "upload_account_statement",
-          arguments: { filename: "uploaded.csv", content_base64: Base64.strict_encode64(content) }
-        }).to_json, headers: mcp_headers(@token)
+      write_tools.each_with_index do |tool_name, index|
+        post "/mcp", params: jsonrpc_request(
+          "tools/call",
+          { name: tool_name, arguments: {} },
+          id: 100 + index
+        ).to_json, headers: mcp_headers(@token)
+
+        assert_response :ok
+        body = JSON.parse(response.body)
+        assert_equal(-32602, body["error"]["code"], "#{tool_name} must be unavailable to MCP")
+        assert_includes body["error"]["message"], tool_name
       end
-
-      assert_response :ok
-      result = JSON.parse(response.body)["result"]
-      assert_not result["isError"]
-
-      inner = JSON.parse(result["content"][0]["text"])
-      assert inner["success"]
-      assert_not inner["duplicate"]
-      assert_equal Digest::SHA256.hexdigest(content), inner.dig("statement", "content_sha256")
-    end
-  end
-
-  test "tools/call executes update_transaction" do
-    with_mcp_env do
-      transaction = transactions(:one)
-      category = categories(:subcategory)
-
-      post "/mcp", params: jsonrpc_request("tools/call", {
-        name: "update_transaction",
-        arguments: {
-          id: transaction.id,
-          category_id: category.id,
-          notes: "Updated through MCP"
-        }
-      }).to_json, headers: mcp_headers(@token)
-
-      assert_response :ok
-      body = JSON.parse(response.body)
-      result = body["result"]
-      inner = JSON.parse(result["content"][0]["text"])
-
-      assert_equal true, inner["success"]
-      assert_equal category.id, transaction.reload.category_id
-      assert_equal "Updated through MCP", transaction.entry.notes
-    end
-  end
-
-  test "tools/call executes update_budget" do
-    with_mcp_env do
-      budget = budgets(:one)
-
-      post "/mcp", params: jsonrpc_request("tools/call", {
-        name: "update_budget",
-        arguments: {
-          budgeted_spending: 6200,
-          expected_income: 8800
-        }
-      }).to_json, headers: mcp_headers(@token)
-
-      assert_response :ok
-      body = JSON.parse(response.body)
-      result = body["result"]
-      inner = JSON.parse(result["content"][0]["text"])
-
-      assert_equal true, inner["success"]
-      budget.reload
-      assert_equal 6200, budget.budgeted_spending
-      assert_equal 8800, budget.expected_income
     end
   end
 
