@@ -227,6 +227,40 @@ class Holding::ForwardCalculatorTest < ActiveSupport::TestCase
     assert_holdings(expected, calculated)
   end
 
+  test "confirmed stock split adjusts quantity and per-unit basis without a synthetic trade" do
+    security = Security.create!(ticker: "SPLT", name: "Split Co")
+    buy_date = 2.days.ago.to_date
+    split_date = 1.day.ago.to_date
+
+    Security::Price.create!(security: security, date: buy_date, price: 100)
+    Security::Price.create!(security: security, date: split_date, price: 50)
+    Security::Price.create!(security: security, date: Date.current, price: 50)
+
+    create_trade(security, qty: 10, date: buy_date, price: 100, account: @account)
+    CorporateAction.create!(
+      family: @account.family,
+      security: security,
+      action_type: "stock_split",
+      status: "confirmed",
+      effective_date: split_date,
+      ratio_numerator: 2,
+      ratio_denominator: 1
+    )
+
+    calculated = Holding::ForwardCalculator.new(@account).calculate
+    before = calculated.find { |h| h.security_id == security.id && h.date == buy_date }
+    after = calculated.find { |h| h.security_id == security.id && h.date == split_date }
+    current = calculated.find { |h| h.security_id == security.id && h.date == Date.current }
+
+    assert_equal BigDecimal("10"), before.qty
+    assert_equal BigDecimal("100"), before.cost_basis
+    assert_equal BigDecimal("20"), after.qty
+    assert_equal BigDecimal("50"), after.cost_basis
+    assert_equal BigDecimal("20"), current.qty
+    assert_equal BigDecimal("50"), current.cost_basis
+    assert_equal 1, @account.trades.where(security: security).count, "split must not fabricate a buy/sell"
+  end
+
   private
     def assert_holdings(expected, calculated)
       expected.each do |expected_entry|
