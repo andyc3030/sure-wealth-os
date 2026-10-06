@@ -60,3 +60,30 @@ A bank route is Production Approved only after all of these pass:
 - source timestamps are retained;
 - reconciliation differences above materiality threshold create an exception;
 - no payment or write-capable provider feature is reachable from Wealth OS AI/MCP.
+
+
+## Kent Reliance
+
+**Status:** Verified Manual — no secure Sure-compatible API/Open Banking route verified in Phase 2.
+
+Kent Reliance's current Online Services provide real-time statements and account documents, which are suitable as verification evidence for a manual wealth-ledger record.
+
+Evidence:
+
+- https://www.kentreliance.co.uk/new-online-services-support
+- https://www.kentreliance.co.uk/login/
+
+Required manual fields:
+
+- account type;
+- balance;
+- currency;
+- contractual interest rate;
+- maturity date where applicable;
+- interest paid and accrued where determinable;
+- statement/document date;
+- last verified timestamp;
+- source document reference;
+- confidence/status.
+
+Do not scrape the online portal and do not store Kent Reliance login credentials.
