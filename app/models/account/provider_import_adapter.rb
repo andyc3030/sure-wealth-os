@@ -44,7 +44,7 @@ class Account::ProviderImportAdapter
   #   was built from. When a protected entry keeps its name, these keep their stored values
   #   too, so the name and the data it came from cannot drift apart.
   # @return [Entry] The created or updated entry
-  def import_transaction(external_id:, amount:, currency:, date:, name:, source:, category_id: nil, kind: nil, merchant: nil, notes: nil, pending_transaction_id: nil, extra: nil, investment_activity_label: nil, allow_heuristic_matching: true, replace_extra_namespaces: [], name_extra_keys: {})
+  def import_transaction(external_id:, amount:, currency:, date:, name:, source:, category_id: nil, kind: nil, merchant: nil, notes: nil, pending_transaction_id: nil, extra: nil, investment_activity_label: nil, allow_heuristic_matching: true, replace_extra_namespaces: [], name_extra_keys: {}, raw_source_record: nil)
     raise ArgumentError, "external_id is required" if external_id.blank?
     raise ArgumentError, "source is required" if source.blank?
 
@@ -281,6 +281,7 @@ class Account::ProviderImportAdapter
         end
       end
 
+      entry.raw_source_record = raw_source_record if raw_source_record
       entry.save!
       entry.transaction.save! if entry.transaction.changed?
 
@@ -429,7 +430,7 @@ class Account::ProviderImportAdapter
   # @param account_provider_id [String, nil] The AccountProvider ID that owns this holding (optional)
   # @param delete_future_holdings [Boolean] Whether to delete holdings after this date (default: false)
   # @return [Holding] The created or updated holding
-  def import_holding(security:, quantity:, amount:, currency:, date:, price: nil, cost_basis: nil, external_id: nil, source:, account_provider_id: nil, delete_future_holdings: false)
+  def import_holding(security:, quantity:, amount:, currency:, date:, price: nil, cost_basis: nil, external_id: nil, source:, account_provider_id: nil, delete_future_holdings: false, raw_source_record: nil)
     raise ArgumentError, "security is required" if security.nil?
     raise ArgumentError, "source is required" if source.blank?
 
@@ -535,7 +536,8 @@ class Account::ProviderImportAdapter
         price: price,
         amount: amount,
         account_provider_id: account_provider_id,
-        external_id: external_id
+        external_id: external_id,
+        raw_source_record_id: raw_source_record&.id
       }
 
       # Only update security if not locked by user
@@ -582,7 +584,8 @@ class Account::ProviderImportAdapter
             updates = {
               qty: quantity,
               price: price,
-              amount: amount
+              amount: amount,
+              raw_source_record_id: raw_source_record&.id
             }
 
             # Reconcile cost_basis to respect priority hierarchy
