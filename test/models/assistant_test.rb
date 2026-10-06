@@ -37,6 +37,26 @@ class AssistantTest < ActiveSupport::TestCase
 
     assert_includes preview_classes, Assistant::Function::GetInsights
     assert_includes preview_classes, Assistant::Function::GetValuations
+
+    [
+      Assistant::Function::ImportBankStatement,
+      Assistant::Function::CreateGoal,
+      Assistant::Function::CreateTag,
+      Assistant::Function::UpdateTag,
+      Assistant::Function::CreateCategory,
+      Assistant::Function::UpdateCategory,
+      Assistant::Function::UpdateTransaction,
+      Assistant::Function::CreateTransaction,
+      Assistant::Function::DeleteTransaction,
+      Assistant::Function::UpdateBudget,
+      Assistant::Function::UploadAccountStatement,
+      Assistant::Function::RecordValuation,
+      Assistant::Function::CreateBill,
+      Assistant::Function::UpdateBill,
+      Assistant::Function::RecordBillPayment
+    ].each do |write_tool|
+      assert_not_includes preview_classes, write_tool
+    end
   end
 
   setup do
