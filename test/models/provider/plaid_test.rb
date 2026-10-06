@@ -32,6 +32,26 @@ class Provider::PlaidTest < ActiveSupport::TestCase
     end
   end
 
+  test "Europe region includes Great Britain and requests transactions only" do
+    europe = Provider::Plaid.new(Rails.application.config.plaid, region: :eu)
+    request = mock
+
+    Plaid::LinkTokenCreateRequest.expects(:new).with do |params|
+      params[:country_codes].include?("GB") &&
+        params[:products] == [ "transactions" ] &&
+        params[:additional_consented_products] == []
+    end.returns(request)
+
+    europe.client.expects(:link_token_create).with(request).returns("response")
+
+    europe.get_link_token(
+      user_id: "test-user-id",
+      webhooks_url: "https://example.com/webhooks",
+      redirect_url: @redirect_url,
+      accountable_type: "Depository"
+    )
+  end
+
   test "requests liability products only for liability account types" do
     request = mock
     Plaid::LinkTokenCreateRequest.expects(:new).with do |params|
