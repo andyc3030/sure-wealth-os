@@ -53,12 +53,21 @@ Phase 3 exit criteria:
 
 ## Phase 4 — Accounting engines
 
-- received/accrued/declared/forecast income;
-- liability principal/interest/fees;
-- corporate actions;
-- TWR alongside MWR;
-- capital/income/FX return;
-- change-in-net-worth attribution.
+Implemented foundation:
+
+- append-only received/accrued/declared/forecast income lifecycle;
+- idempotent booked Dividend/Interest → RECEIVED projection;
+- liability principal/interest/fees/insurance decomposition using Sure's amortization engine;
+- explicit corporate-action records;
+- stock split/reverse-split integration in forward and reverse holding reconstruction;
+- total cost-basis preservation through splits;
+- TWR alongside existing XIRR/MWR;
+- deterministic capital/income/fees/financing/FX attribution bridge.
+
+Safety boundary:
+
+- mergers, spin-offs, rights, return-of-capital and fund mergers are recorded but do not automatically mutate positions until dedicated deterministic handlers exist;
+- AI/MCP remains read-only and is not an accounting engine.
 
 ## Phase 5 — Authoritative daily close
 
