@@ -6,33 +6,36 @@ module Assistant
     "external" => Assistant::External
   }.freeze
 
-  # Tools for users who opted into preview features in Settings -> Preferences.
-  #
-  # Statement Vault + provenance tools back the wealth agent-harness workflow
-  # documented in docs/llm-guides/wealth-agent-harness.md. GetValuations is the
-  # read pair for RecordValuation; GetInsights reads the Insights feed, which is
-  # itself preview-gated app-wide.
-  #
-  # The bills tools back the preview-gated Bills subsystem.
+  # Wealth OS invariant: AI-facing tools are read-only. Mutating function
+  # classes remain in the codebase for non-AI application workflows, but they
+  # are intentionally excluded from the assistant/MCP registry.
+  READ_ONLY_FUNCTION_CLASSES = [
+    Function::GetTransactions,
+    Function::GetRecurringTransactions,
+    Function::GetAccounts,
+    Function::GetHoldings,
+    Function::GetBalanceSheet,
+    Function::GetIncomeStatement,
+    Function::GetBudget,
+    Function::SearchFamilyFiles,
+    Function::GetTags,
+    Function::GetCategories,
+    Function::GetMerchants
+  ].freeze
+
+  # Preview reads remain gated by the user's preview preference. Write-capable
+  # preview tools such as statement upload, valuation recording and bill
+  # mutation are deliberately excluded from AI/MCP.
   PREVIEW_FUNCTION_CLASSES = [
-    Function::UploadAccountStatement,
     Function::ListAccountStatements,
     Function::GetAccountStatement,
     Function::GetStatementCoverage,
-    Function::RecordValuation,
     Function::GetValuations,
     Function::GetInsights,
-    # Bills: the whole subsystem is preview-gated, so its tools ride the same
-    # per-user flag as the surfaces they operate on. Each tool additionally
-    # re-checks the family's recurring feature gate and the user's
-    # account-access scope itself.
     Function::GetBills,
     Function::GetBillDetails,
     Function::GetPaycheckPlan,
-    Function::GetBillAudit,
-    Function::CreateBill,
-    Function::UpdateBill,
-    Function::RecordBillPayment
+    Function::GetBillAudit
   ].freeze
 
   class << self
@@ -49,35 +52,11 @@ module Assistant
       REGISTRY.keys
     end
 
-    # The single registry behind both the builtin chat and the /mcp endpoint's
-    # tools/list — a function class added here is immediately callable by an
-    # external agent, so pass the user to keep preview tools out of the default
-    # surface.
+    # The builtin assistant and /mcp endpoint share this read-only registry.
+    # Adding a mutating function here is a security-sensitive change and must
+    # be rejected by the Wealth OS regression tests.
     def function_classes(user = nil)
-      classes = [
-        Function::GetTransactions,
-        Function::GetRecurringTransactions,
-        Function::GetAccounts,
-        Function::GetHoldings,
-        Function::GetBalanceSheet,
-        Function::GetIncomeStatement,
-        Function::GetBudget,
-        Function::ImportBankStatement,
-        Function::SearchFamilyFiles,
-        Function::CreateGoal,
-        Function::GetTags,
-        Function::CreateTag,
-        Function::UpdateTag,
-        Function::GetCategories,
-        Function::CreateCategory,
-        Function::UpdateCategory,
-        Function::GetMerchants,
-        Function::UpdateTransaction,
-        Function::CreateTransaction,
-        Function::DeleteTransaction,
-        Function::UpdateBudget
-      ]
-
+      classes = READ_ONLY_FUNCTION_CLASSES.dup
       classes += PREVIEW_FUNCTION_CLASSES if user&.preview_features_enabled?
       classes
     end
