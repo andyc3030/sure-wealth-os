@@ -19,30 +19,43 @@ class RawSourceRecord < ApplicationRecord
 
   class << self
     def ingest!(family:, source_system:, record_type:, source_key:, payload:, observed_at: Time.current,
-                effective_at: nil, account: nil, account_provider: nil, metadata: {}, schema_version: 1)
+                effective_at: nil, account: nil, account_provider: nil, metadata: {}, schema_version: 1,
+                idempotency_key: nil)
       normalized = canonicalize(payload)
       digest = digest_for(normalized)
 
-      attrs = {
+      if idempotency_key.present?
+        existing = find_by(
+          family: family,
+          source_system: source_system,
+          idempotency_key: idempotency_key.to_s
+        )
+        return existing if existing
+      end
+
+      create!(
         family: family,
         source_system: source_system,
         record_type: record_type,
         source_key: source_key.to_s,
-        payload_sha256: digest
-      }
-
-      find_by(attrs) || create!(
-        **attrs,
+        idempotency_key: idempotency_key&.to_s,
         account: account,
         account_provider: account_provider,
         observed_at: observed_at,
         effective_at: effective_at,
         payload: normalized,
+        payload_sha256: digest,
         metadata: canonicalize(metadata),
         schema_version: schema_version
       )
     rescue ActiveRecord::RecordNotUnique
-      find_by!(attrs)
+      raise unless idempotency_key.present?
+
+      find_by!(
+        family: family,
+        source_system: source_system,
+        idempotency_key: idempotency_key.to_s
+      )
     end
 
     def digest_for(payload)
