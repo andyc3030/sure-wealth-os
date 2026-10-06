@@ -142,8 +142,10 @@ At the time of writing, `tools/list` includes:
 | `get_balance_sheet` | Net worth, assets and liabilities with a configurable history period and interval |
 | `get_income_statement` | Income and expenses for a period, with optional monthly series, prior-period comparison and account filtering |
 | `get_budget` | Budget summary for a month, with optional prior months |
+| `get_merchants` | Merchants relevant to the user's transactions, with stable ids and names for read-only filtering |
 | `get_tags` | Tags with pagination |
 | `get_categories` | Categories with hierarchy and pagination |
+| `search_family_files` | Search documents uploaded through the import flow (read-only vector-store search) |
 
 ### Preview Tools
 
@@ -158,6 +160,7 @@ permissions enforced in the web UI.
 | `list_account_statements` | List vault documents with their SHA-256, period, linked account and review status |
 | `get_account_statement` | One statement's details and its reconciliation checks against the ledger — present only once someone has entered the statement's opening/closing balances in the web UI, since nothing extracts them from the document. Does not return the file: stored documents are served only to a signed-in browser session |
 | `get_statement_coverage` | Month-by-month statement coverage for an account: `covered`, `missing`, `mismatched`, `ambiguous`, `duplicate`, `not_expected`, each with a reconciliation status |
+| `get_valuations` | List recorded valuations newest first, including the source citation stored with each valuation |
 | `get_insights` | Read the proactive insights feed (spending anomalies, cash-flow warnings, subscription audits and more) without marking anything read |
 | `get_bills` | List bills, subscriptions and other recurring obligations with each one's current payment state |
 | `get_bill_details` | One bill's full configuration, open occurrences, payment history, price-change history and cost analytics |
@@ -241,7 +244,7 @@ The authorization-server metadata includes:
 - `authorization_endpoint`: `https://your-sure-instance/oauth/authorize`
 - `token_endpoint`: `https://your-sure-instance/oauth/token`
 - `registration_endpoint`: `https://your-sure-instance/register`
-- `scopes_supported`: `["read"]`
+- `scopes_supported`: `["read", "read_write"]` (MCP clients registered by this fork receive and request `read`)
 
 ### Call a Tool
 
