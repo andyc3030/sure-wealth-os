@@ -42,11 +42,7 @@ class Assistant::Function::BillsToolsSchemaTest < ActiveSupport::TestCase
     end
   end
 
-  # The registry is shared with the public /mcp endpoint: being listed makes a
-  # tool callable by external agents. Bills is a preview feature, so its tools
-  # ride the per-user preview flag -- present for an opted-in user, absent from
-  # the default set. This test documents both halves.
-  test "the bills tools are preview-gated in the registry" do
+  test "only read-only bills tools are exposed to preview AI" do
     user_with_preview = users(:family_admin)
     user_with_preview.update!(
       preferences: (user_with_preview.preferences || {}).merge("preview_features_enabled" => true)
@@ -55,9 +51,23 @@ class Assistant::Function::BillsToolsSchemaTest < ActiveSupport::TestCase
     preview_classes = Assistant.function_classes(user_with_preview)
     default_classes = Assistant.function_classes(nil)
 
-    BILLS_TOOLS.each do |tool|
-      assert_includes preview_classes, tool
-      assert_not_includes default_classes, tool
+    [
+      Assistant::Function::GetBills,
+      Assistant::Function::GetBillDetails,
+      Assistant::Function::GetPaycheckPlan,
+      Assistant::Function::GetBillAudit
+    ].each do |read_tool|
+      assert_includes preview_classes, read_tool
+      assert_not_includes default_classes, read_tool
+    end
+
+    [
+      Assistant::Function::CreateBill,
+      Assistant::Function::UpdateBill,
+      Assistant::Function::RecordBillPayment
+    ].each do |write_tool|
+      assert_not_includes preview_classes, write_tool
+      assert_not_includes default_classes, write_tool
     end
   end
 
