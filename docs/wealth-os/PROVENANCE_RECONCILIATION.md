@@ -40,8 +40,10 @@ A raw source record stores:
 ### Invariants
 
 - source payloads are immutable through the application model;
-- identical source content is idempotently deduplicated by source identity + SHA-256;
-- changed source content creates a new raw version;
+- repeated observations are retained even when the financial value/payload is unchanged, preserving freshness history;
+- a caller-supplied deterministic `idempotency_key` deduplicates only a true retry/replay of the same ingestion event;
+- changed source content creates a new raw observation/version;
+- SHA-256 is retained for integrity/content comparison, not as a reason to collapse observations across time;
 - credentials/tokens must never be stored in the payload or metadata;
 - family deletion may purge these records through database cascade for privacy/retention compliance.
 
