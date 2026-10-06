@@ -81,3 +81,60 @@ Evidence:
 - revocation stops access;
 - source timestamps and freshness are retained;
 - no trading/order endpoint is reachable from Wealth OS AI/MCP.
+
+
+## IC Markets Global / cTrader
+
+**Status:** Direct read-only API route verified — dedicated Sure adapter and live test required.
+
+IC Markets cTrader accounts are suitable for a direct connector through the official cTrader Open API.
+
+cTrader Open API authentication is OAuth 2.0. The required Wealth OS permission is:
+
+- `scope=accounts` — view-only account information/statistics; trading operations are impossible.
+
+The following permission is forbidden for Wealth OS:
+
+- `scope=trading` — grants trading authority.
+
+Evidence:
+
+- https://help.ctrader.com/open-api/account-authentication/
+- https://help.ctrader.com/open-api/
+- https://help.ctrader.com/open-api/api-application/
+
+### Planned Sure adapter
+
+Add a dedicated cTrader provider adapter that can read, where exposed by the API:
+
+- cTrader account identity and account currency;
+- balance and equity;
+- free/used margin and margin statistics;
+- current positions;
+- pending orders as read-only exposure data;
+- historical deals/trades;
+- realised and unrealised P&L;
+- commissions;
+- swaps/financing;
+- deposits/withdrawals or cash-flow equivalents where available;
+- source timestamps and freshness.
+
+### Security requirements
+
+- OAuth authorization URL must hard-code/request `scope=accounts`;
+- adapter must reject any token/authorization state that indicates trading scope;
+- no trading/order-placement message may be implemented in the Wealth OS provider surface;
+- AI/MCP receives normalized read-only data only, never cTrader OAuth secrets/tokens;
+- demo account should be used for initial integration and reconciliation testing before live account approval.
+
+### Production acceptance tests
+
+- OAuth consent visibly requests accounts/view-only permission;
+- returned account identity matches the intended IC Markets cTrader account;
+- balance/equity reconcile to cTrader;
+- positions and volumes reconcile;
+- realised/unrealised P&L and fees reconcile within documented methodology;
+- reconnect does not duplicate the account;
+- revocation prevents further access;
+- token refresh works without broadening scope;
+- no trading operation is reachable through the adapter, service layer or AI/MCP.
