@@ -29,7 +29,7 @@ The AI sits at the end of the architecture.
 - MCP dynamic clients receive the `read` scope.
 - `/mcp` requires a token containing `read`.
 - A token containing only `read_write` is not sufficient for MCP.
-- The normal Sure API may retain `read_write` for non-AI human/application workflows.
+- The normal Sure API retains `read_write` for non-AI human/application workflows; global OAuth metadata may advertise both `read` and `read_write`.
 - Static MCP tokens are still constrained by the read-only Assistant registry.
 
 ## Read-only AI registry
