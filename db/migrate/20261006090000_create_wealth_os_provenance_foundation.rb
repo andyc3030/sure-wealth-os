@@ -9,6 +9,7 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
       t.string :source_system, null: false
       t.string :record_type, null: false
       t.string :source_key, null: false, limit: 255
+      t.string :idempotency_key, limit: 255
       t.datetime :observed_at, null: false
       t.datetime :effective_at
       t.jsonb :payload, null: false, default: {}
@@ -19,9 +20,10 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
     end
 
     add_index :raw_source_records,
-              [ :family_id, :source_system, :record_type, :source_key, :payload_sha256 ],
+              [ :family_id, :source_system, :idempotency_key ],
               unique: true,
-              name: "idx_raw_source_records_content_identity"
+              where: "idempotency_key IS NOT NULL",
+              name: "idx_raw_source_records_idempotency"
 
     create_table :source_identities, id: :uuid do |t|
       t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
