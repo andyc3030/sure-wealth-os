@@ -3228,7 +3228,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
   add_foreign_key "users", "families"
   add_foreign_key "webauthn_credentials", "users"
   add_foreign_key "wise_accounts", "wise_items", on_delete: :cascade
-  add_foreign_key "wise_items", "families"  add_foreign_key "raw_source_records", "account_providers", on_delete: :nullify
+  add_foreign_key "wise_items", "families"
+  add_foreign_key "raw_source_records", "account_providers", on_delete: :nullify
   add_foreign_key "raw_source_records", "accounts", on_delete: :nullify
   add_foreign_key "raw_source_records", "families", on_delete: :cascade
   add_foreign_key "reconciliation_events", "account_providers", on_delete: :nullify
