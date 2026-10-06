@@ -17,3 +17,8 @@ All Wealth OS audit findings and initial hardening changes are evaluated against
 3. Keep AI/MCP read-only unless a separately reviewed transaction-authorisation architecture is deliberately introduced.
 4. Pull upstream changes only through review and rerun the Wealth OS security/accounting regression suite.
 5. Any upstream change to assistant functions, MCP, OAuth scopes, provider ingestion, holdings, valuations, liabilities, income or reconciliation requires explicit Wealth OS review.
+
+## CI status
+
+- GitHub Actions enabled for the fork on 2026-10-06.
+- Security PRs are not merge-ready until the fork's PR workflow completes successfully.
