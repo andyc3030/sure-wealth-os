@@ -58,8 +58,8 @@ class Provider::PlaidAdapter < Provider::Base
     if family.can_connect_plaid_eu?
       configs << {
         key: "plaid_eu",
-        name: "Plaid (EU)",
-        description: "Connect to your EU bank via Plaid",
+        name: "Plaid (Europe / UK)",
+        description: "Connect to your European or UK bank via Plaid",
         can_connect: true,
         member_connectable: member_connectable?,
         new_account_path: ->(accountable_type, return_to) {
