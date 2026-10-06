@@ -3,7 +3,7 @@
 class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
   def change
     create_table :raw_source_records, id: :uuid do |t|
-      t.references :family, type: :uuid, null: false, foreign_key: true
+      t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.references :account, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :account_provider, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.string :source_system, null: false
@@ -24,7 +24,7 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
               name: "idx_raw_source_records_content_identity"
 
     create_table :source_identities, id: :uuid do |t|
-      t.references :family, type: :uuid, null: false, foreign_key: true
+      t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.references :raw_source_record, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.string :source_system, null: false
       t.string :entity_type, null: false
@@ -45,7 +45,7 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
               name: "idx_source_identities_canonical"
 
     create_table :source_authority_rules, id: :uuid do |t|
-      t.references :family, type: :uuid, null: false, foreign_key: true
+      t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.string :record_type, null: false
       t.string :field_name, null: false
       t.string :source_system, null: false
@@ -61,7 +61,7 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
               name: "idx_source_authority_rules_unique"
 
     create_table :source_conflicts, id: :uuid do |t|
-      t.references :family, type: :uuid, null: false, foreign_key: true
+      t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.references :account, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :subject, polymorphic: true, type: :uuid, null: true, index: true
       t.string :field_name, null: false
@@ -87,7 +87,7 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
               name: "idx_source_conflicts_pair"
 
     create_table :reconciliation_events, id: :uuid do |t|
-      t.references :family, type: :uuid, null: false, foreign_key: true
+      t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.references :account, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :account_provider, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :subject, polymorphic: true, type: :uuid, null: true, index: true
