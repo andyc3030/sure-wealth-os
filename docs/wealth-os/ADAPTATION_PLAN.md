@@ -21,6 +21,9 @@
 
 - Verify Santander UK coverage and field availability.
 - Verify NatWest UK coverage and field availability.
+- Verify Kent Reliance and classify unsupported savings accounts for verified-manual ingestion.
+- Verify AJ Bell and Charles Schwab read-only brokerage routes.
+- Verify IC Markets through cTrader Open API with OAuth `accounts` scope only.
 - Add brokers, pensions, mortgages, property and other sources.
 - Mark each DIRECT API / OPEN BANKING / AGGREGATOR / VERIFIED MANUAL / UNSUPPORTED.
 
