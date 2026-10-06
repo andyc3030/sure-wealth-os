@@ -2931,6 +2931,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.datetime "created_at", null: false
     t.datetime "effective_at"
     t.uuid "family_id", null: false
+    t.string "idempotency_key", limit: 255
     t.jsonb "metadata", default: {}, null: false
     t.datetime "observed_at", null: false
     t.jsonb "payload", default: {}, null: false
@@ -2942,7 +2943,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_raw_source_records_on_account_id"
     t.index ["account_provider_id"], name: "index_raw_source_records_on_account_provider_id"
-    t.index ["family_id", "source_system", "record_type", "source_key", "payload_sha256"], name: "idx_raw_source_records_content_identity", unique: true
+    t.index ["family_id", "source_system", "idempotency_key"], name: "idx_raw_source_records_idempotency", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["family_id"], name: "index_raw_source_records_on_family_id"
   end
 
