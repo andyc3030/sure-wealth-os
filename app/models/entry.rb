@@ -1,5 +1,6 @@
 class Entry < ApplicationRecord
   include Monetizable, Enrichable
+  include SourceTraceable
 
   TRUTHY_VALUES = [ true, "true", "1", 1 ].freeze
   private_constant :TRUTHY_VALUES
