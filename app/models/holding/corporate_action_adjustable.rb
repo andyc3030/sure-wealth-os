@@ -29,8 +29,10 @@ module Holding::CorporateActionAdjustable
         next unless ratio&.positive?
 
         security_id = action.security_id
-        adjusted[security_id] = (adjusted[security_id] || 0).to_d * ratio
-        trackers&.fetch(security_id)&.apply_split(ratio)
+        next unless adjusted.key?(security_id)
+
+        adjusted[security_id] = adjusted[security_id].to_d * ratio
+        trackers[security_id].apply_split(ratio) if trackers
       end
 
       adjusted
@@ -44,7 +46,9 @@ module Holding::CorporateActionAdjustable
         next unless ratio&.positive?
 
         security_id = action.security_id
-        adjusted[security_id] = (adjusted[security_id] || 0).to_d / ratio
+        next unless adjusted.key?(security_id)
+
+        adjusted[security_id] = adjusted[security_id].to_d / ratio
       end
 
       adjusted
