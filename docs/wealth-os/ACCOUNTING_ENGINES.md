@@ -250,3 +250,54 @@ Phase 4 is ready only when:
 - attribution bridge closes to zero on reference fixtures;
 - unsupported corporate-action handlers remain non-mutating;
 - unit/integration/system/lint/security CI is green.
+
+
+## Additional accounting safety invariants
+
+### Income lifecycle identity
+
+A family may have only one lifecycle root for a given `event_key`.
+
+That root can then be superseded through the append-only state chain. This prevents two independent current chains from representing the same economic income event.
+
+Accounting records also inherit Phase 3 raw-source lineage checks:
+
+- raw evidence must belong to the same family;
+- when a raw record is account-scoped, it must match the accounting record's account.
+
+### Scheduled liability idempotency
+
+Scheduled amortization decomposition is rerun-safe.
+
+For a given loan/date/source:
+
+- an identical scheduled decomposition returns the existing record;
+- changed principal/interest/fee/insurance components fail loudly with `ScheduleConflict`;
+- the database also enforces one scheduled row per loan/date/source.
+
+Actual provider payments remain independently identifiable through provider `source_system + external_id`.
+
+### Corporate-action confirmation
+
+Corporate actions default to **pending**.
+
+Only explicitly **confirmed** stock splits and reverse splits may alter reconstructed holdings.
+
+Confirmed corporate actions are immutable through the application model. A confirmed split ratio cannot be edited in place after it has changed historical quantities/cost basis.
+
+The database also prevents duplicate confirmed split events for the same family/security/type/effective date.
+
+### Withholding tax
+
+Performance attribution treats withholding tax as a separate reduction from gross income.
+
+The bridge therefore distinguishes:
+
+- gross income;
+- withholding tax;
+- account/platform fees;
+- financing cost;
+- FX effect;
+- capital return.
+
+This avoids forcing withholding tax into unexplained residual or mislabelling it as an investment-management fee.
