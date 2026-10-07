@@ -3015,6 +3015,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.index ["family_id"], name: "index_source_conflicts_on_family_id"
     t.index ["selected_source_record_id"], name: "index_source_conflicts_on_selected_source_record_id"
     t.index ["source_record_a_id", "source_record_b_id", "field_name", "status"], name: "idx_source_conflicts_pair"
+    t.index ["source_record_a_id", "source_record_b_id", "field_name"], name: "idx_source_conflicts_unique_pair", unique: true
     t.index ["source_record_a_id"], name: "index_source_conflicts_on_source_record_a_id"
     t.index ["source_record_b_id"], name: "index_source_conflicts_on_source_record_b_id"
     t.index ["subject_type", "subject_id"], name: "index_source_conflicts_on_subject"
@@ -3035,6 +3036,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.datetime "updated_at", null: false
     t.datetime "verified_at"
     t.index ["canonical_type", "canonical_id"], name: "idx_source_identities_canonical"
+    t.index ["family_id", "source_system", "entity_type", "external_id"], name: "idx_source_identities_unique_root", unique: true, where: "(supersedes_id IS NULL)"
+    t.index ["supersedes_id"], name: "idx_source_identities_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
     t.index ["family_id", "source_system", "entity_type", "external_id", "created_at"], name: "idx_source_identities_lookup"
     t.index ["family_id"], name: "index_source_identities_on_family_id"
     t.index ["raw_source_record_id"], name: "index_source_identities_on_raw_source_record_id"
