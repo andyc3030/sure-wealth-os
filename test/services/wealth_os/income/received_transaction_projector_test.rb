@@ -26,8 +26,11 @@ class WealthOs::Income::ReceivedTransactionProjectorTest < ActiveSupport::TestCa
     assert_equal first.id, second.id
     assert_equal "dividend", first.income_type
     assert_equal "received", first.state
-    assert_equal BigDecimal("50"), first.amount
+    assert_nil first.amount
+    assert_nil first.tax_withheld
+    assert_nil first.fees
     assert_equal BigDecimal("50"), first.received_cash
+    assert_equal entry.id, first.entry_id
     assert_equal 1, IncomeEvent.where(family: account.family, event_key: first.event_key).count
   end
 
@@ -108,6 +111,34 @@ class WealthOs::Income::ReceivedTransactionProjectorTest < ActiveSupport::TestCa
     )
 
     assert_nil WealthOs::Income::ReceivedTransactionProjector.call(entry)
+  end
+
+  test "cash-only projection does not infer gross income or deductions" do
+    account = families(:empty).accounts.create!(
+      name: "Cash Only Income Broker",
+      balance: 1000,
+      cash_balance: 100,
+      currency: "USD",
+      accountable: Investment.new
+    )
+
+    entry = account.entries.create!(
+      name: "Dividend",
+      amount: -85,
+      currency: "USD",
+      date: Date.current,
+      external_id: "div-net-cash",
+      source: "test_provider",
+      entryable: Transaction.new(investment_activity_label: "Dividend")
+    )
+
+    event = WealthOs::Income::ReceivedTransactionProjector.call(entry)
+
+    assert_nil event.amount
+    assert_nil event.tax_withheld
+    assert_nil event.fees
+    assert_equal BigDecimal("85"), event.cash_amount
+    assert_equal "booked_transaction_cash_only", event.method
   end
 
 end
