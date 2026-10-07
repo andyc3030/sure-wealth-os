@@ -2956,7 +2956,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.index ["family_id"], name: "index_income_events_on_family_id"
     t.index ["raw_source_record_id"], name: "index_income_events_on_raw_source_record_id"
     t.index ["security_id"], name: "index_income_events_on_security_id"
+    t.check_constraint "confidence::text = ANY (ARRAY['confirmed'::character varying, 'high'::character varying, 'estimated'::character varying, 'low'::character varying, 'unknown'::character varying]::text[])", name: "chk_income_events_confidence"
     t.check_constraint "gross_amount >= 0::numeric AND withholding_tax_amount >= 0::numeric AND fee_amount >= 0::numeric", name: "chk_income_events_nonnegative_amounts"
+    t.check_constraint "income_type::text = ANY (ARRAY['dividend'::character varying, 'interest'::character varying, 'coupon'::character varying, 'distribution'::character varying, 'rent'::character varying, 'salary'::character varying, 'pension'::character varying, 'annuity'::character varying, 'business_income'::character varying, 'other'::character varying]::text[])", name: "chk_income_events_type"
+    t.check_constraint "state::text = ANY (ARRAY['forecast'::character varying, 'accrued'::character varying, 'declared'::character varying, 'received'::character varying]::text[])", name: "chk_income_events_state"
   end
 
   create_table "income_event_transitions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3001,6 +3004,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.index ["family_id", "canonical_key"], name: "idx_liability_payments_family_canonical", unique: true
     t.index ["family_id"], name: "index_liability_payments_on_family_id"
     t.index ["raw_source_record_id"], name: "index_liability_payments_on_raw_source_record_id"
+    t.check_constraint "payment_type::text = ANY (ARRAY['actual'::character varying, 'scheduled'::character varying]::text[])", name: "chk_liability_payments_type"
+    t.check_constraint "total_amount = principal_amount + interest_amount + fee_amount + insurance_amount", name: "chk_liability_payments_component_sum"
     t.check_constraint "total_amount >= 0::numeric AND principal_amount >= 0::numeric AND interest_amount >= 0::numeric AND fee_amount >= 0::numeric AND insurance_amount >= 0::numeric", name: "chk_liability_payments_nonnegative_amounts"
   end
 
@@ -3030,7 +3035,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.index ["security_id", "effective_date", "action_type"], name: "idx_corporate_actions_security_date"
     t.index ["security_id"], name: "index_corporate_actions_on_security_id"
     t.index ["successor_security_id"], name: "index_corporate_actions_on_successor_security_id"
+    t.check_constraint "action_type::text = ANY (ARRAY['split'::character varying, 'reverse_split'::character varying, 'merger'::character varying, 'spinoff'::character varying, 'rights'::character varying, 'ticker_change'::character varying, 'cash_dividend'::character varying, 'special_dividend'::character varying, 'return_of_capital'::character varying, 'fund_reorganization'::character varying]::text[])", name: "chk_corporate_actions_type"
     t.check_constraint "(ratio_numerator IS NULL OR ratio_numerator > 0::numeric) AND (ratio_denominator IS NULL OR ratio_denominator > 0::numeric)", name: "chk_corporate_actions_positive_ratio"
+    t.check_constraint "status::text = ANY (ARRAY['observed'::character varying, 'validated'::character varying, 'applied'::character varying, 'reconciled'::character varying, 'ignored'::character varying]::text[])", name: "chk_corporate_actions_status"
   end
 
   create_table "raw_source_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
