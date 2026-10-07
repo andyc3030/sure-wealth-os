@@ -32,10 +32,13 @@ en:
       dividend: Dividend
       interest: Interest
       contribution: Contribution
+      distribution: Distribution
       exchange: Exchange
       fee: Fee
       other: Other
       reinvestment: Reinvestment
+      return_of_capital: Return of Capital
+      substitute_dividend: Substitute Dividend
       sweep_in: Sweep in
       sweep_out: Sweep out
       transfer: Transfer
