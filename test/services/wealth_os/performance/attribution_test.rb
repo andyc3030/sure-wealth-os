@@ -12,11 +12,13 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
       tax_withheld: 5,
       fees: 10,
       financing_cost: 20,
+      insurance_cost: 15,
       fx_effect: 10
     )
 
     assert_equal BigDecimal("135"), result.capital_return
     assert_equal BigDecimal("5"), result.tax_withheld
+    assert_equal BigDecimal("15"), result.insurance_cost
     assert_equal BigDecimal("200"), result.explained_change
     assert_equal BigDecimal("0"), result.unexplained_change
   end
@@ -31,11 +33,12 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
       tax_withheld: 5,
       fees: 10,
       financing_cost: 20,
+      insurance_cost: 15,
       fx_effect: 10
     )
 
     assert_equal BigDecimal("130"), result.capital_return
-    assert_equal BigDecimal("195"), result.explained_change
-    assert_equal BigDecimal("5"), result.unexplained_change
+    assert_equal BigDecimal("180"), result.explained_change
+    assert_equal BigDecimal("20"), result.unexplained_change
   end
 end
