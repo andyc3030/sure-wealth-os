@@ -49,12 +49,14 @@ class IncomeEventTest < ActiveSupport::TestCase
 
     assert_equal "received", event.state
     assert_equal BigDecimal("90"), event.net_amount
+    assert_equal BigDecimal("90"), event.received_cash
     assert_equal 3, event.transitions.count
 
     summary = WealthOs::Income::StateSummary.call([ event ]).fetch("USD")
     assert_equal 0, summary.forecast
     assert_equal 0, summary.declared
     assert_equal BigDecimal("90"), summary.received
+    assert_equal BigDecimal("90"), summary.received_cash
   end
 
   test "accrued income requires an explicit accrual interval" do
