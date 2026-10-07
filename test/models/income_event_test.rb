@@ -287,5 +287,4 @@ class IncomeEventTest < ActiveSupport::TestCase
         payload: { "verified" => true }
       )
     end
-
 end
