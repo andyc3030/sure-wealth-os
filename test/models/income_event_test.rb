@@ -1,4 +1,4 @@
-require "test_helper"
+<sub>require "test_helper"
 
 class IncomeEventTest < ActiveSupport::TestCase
   test "forecast transitions to declared then received without double counting" do
@@ -144,3 +144,4 @@ class IncomeEventTest < ActiveSupport::TestCase
     assert_includes event.errors[:state], "dividend income must remain forecast until it is declared or received"
   end
 end
+</sub>
