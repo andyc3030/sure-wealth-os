@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -3045,6 +3045,171 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.check_constraint "confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_source_identities_confidence"
   end
 
+  create_table "investment_recommendation_claims", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "investment_recommendation_id", null: false
+    t.uuid "research_claim_id", null: false
+    t.string "role", default: "supports", null: false
+    t.datetime "updated_at", null: false
+    t.index ["investment_recommendation_id", "research_claim_id"], name: "idx_investment_recommendation_claims_unique", unique: true
+    t.index ["investment_recommendation_id"], name: "index_investment_recommendation_claims_on_investment_recommendation_id"
+    t.index ["research_claim_id"], name: "index_investment_recommendation_claims_on_research_claim_id"
+  end
+
+  create_table "investment_recommendations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "action", null: false
+    t.datetime "as_of_at", null: false
+    t.text "balance_sheet_quality", null: false
+    t.text "capital_intensity", null: false
+    t.text "cash_generation_quality", null: false
+    t.string "company_name", null: false
+    t.decimal "confidence", precision: 5, scale: 4
+    t.text "competitive_position", null: false
+    t.text "correlation_context", null: false
+    t.datetime "created_at", null: false
+    t.decimal "current_price", precision: 19, scale: 6
+    t.decimal "current_weight_pct", precision: 8, scale: 4
+    t.decimal "invalidation_price", precision: 19, scale: 6
+    t.jsonb "metadata", default: {}, null: false
+    t.text "near_term_catalyst"
+    t.string "portfolio_status", default: "unknown", null: false
+    t.decimal "preferred_entry_high", precision: 19, scale: 6
+    t.decimal "preferred_entry_low", precision: 19, scale: 6
+    t.string "price_currency", limit: 3
+    t.datetime "price_as_of_at"
+    t.uuid "price_raw_source_record_id"
+    t.jsonb "principal_risks", default: [], null: false
+    t.decimal "proposed_weight_pct", precision: 8, scale: 4
+    t.uuid "research_run_id", null: false
+    t.text "role_in_thesis", null: false
+    t.uuid "security_id"
+    t.string "sleeve", null: false
+    t.string "status", default: "draft", null: false
+    t.text "structural_thesis", null: false
+    t.string "theme", null: false
+    t.string "ticker"
+    t.datetime "updated_at", null: false
+    t.text "valuation_context", null: false
+    t.index ["price_raw_source_record_id"], name: "index_investment_recommendations_on_price_raw_source_record_id"
+    t.index ["research_run_id", "theme", "action"], name: "idx_investment_recommendations_run_theme"
+    t.index ["research_run_id"], name: "index_investment_recommendations_on_research_run_id"
+    t.index ["security_id"], name: "index_investment_recommendations_on_security_id"
+    t.check_constraint "confidence IS NULL OR confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_investment_recommendations_confidence"
+    t.check_constraint "current_weight_pct IS NULL OR current_weight_pct >= 0::numeric AND current_weight_pct <= 100::numeric", name: "chk_investment_recommendations_current_weight"
+    t.check_constraint "preferred_entry_low IS NULL OR preferred_entry_high IS NULL OR preferred_entry_low <= preferred_entry_high", name: "chk_investment_recommendations_entry_zone"
+    t.check_constraint "proposed_weight_pct IS NULL OR proposed_weight_pct >= 0::numeric AND proposed_weight_pct <= 100::numeric", name: "chk_investment_recommendations_proposed_weight"
+  end
+
+  create_table "research_claims", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "as_of_at", null: false
+    t.string "claim_kind", null: false
+    t.decimal "confidence", precision: 5, scale: 4
+    t.datetime "created_at", null: false
+    t.text "falsification_criterion"
+    t.boolean "important", default: false, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.uuid "research_run_id", null: false
+    t.string "stance", default: "neutral", null: false
+    t.text "statement", null: false
+    t.string "status", default: "draft", null: false
+    t.string "theme", null: false
+    t.datetime "updated_at", null: false
+    t.index ["research_run_id", "theme", "status"], name: "idx_research_claims_run_theme_status"
+    t.index ["research_run_id"], name: "index_research_claims_on_research_run_id"
+    t.check_constraint "confidence IS NULL OR confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_research_claims_confidence"
+  end
+
+  create_table "research_evidences", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "evidence_summary", null: false
+    t.boolean "independent", default: true, null: false
+    t.string "pinpoint_reference"
+    t.uuid "research_claim_id", null: false
+    t.uuid "research_source_id", null: false
+    t.string "role", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "weight", precision: 5, scale: 4, default: "1.0", null: false
+    t.index ["research_claim_id", "research_source_id", "role"], name: "idx_research_evidences_unique", unique: true
+    t.index ["research_claim_id"], name: "index_research_evidences_on_research_claim_id"
+    t.index ["research_source_id"], name: "index_research_evidences_on_research_source_id"
+    t.check_constraint "weight >= 0::numeric AND weight <= 1::numeric", name: "chk_research_evidences_weight"
+  end
+
+  create_table "research_runs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "as_of_at", null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "methodology_version", null: false
+    t.text "notes"
+    t.string "status", default: "draft", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "as_of_at"], name: "idx_research_runs_family_as_of"
+    t.index ["family_id"], name: "index_research_runs_on_family_id"
+  end
+
+  create_table "research_sources", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "academic", default: false, null: false
+    t.integer "authority", null: false
+    t.boolean "commercial_conflict", default: false, null: false
+    t.text "conflict_notes"
+    t.string "content_sha256", limit: 64
+    t.datetime "created_at", null: false
+    t.integer "evidence_quality", null: false
+    t.integer "independence", null: false
+    t.boolean "industry", default: false, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.integer "methodological_transparency", null: false
+    t.decimal "overall_quality_score", precision: 4, scale: 2, null: false
+    t.boolean "primary_or_institutional", default: false, null: false
+    t.boolean "promotional", default: false, null: false
+    t.date "publication_date"
+    t.string "publisher", null: false
+    t.uuid "raw_source_record_id"
+    t.integer "recency", null: false
+    t.integer "relevance", null: false
+    t.uuid "research_run_id", null: false
+    t.datetime "retrieved_at", null: false
+    t.integer "source_tier", null: false
+    t.string "source_type", null: false
+    t.string "status", default: "accepted", null: false
+    t.string "theme", null: false
+    t.string "thesis_position", default: "neutral", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.text "url", null: false
+    t.index ["raw_source_record_id"], name: "index_research_sources_on_raw_source_record_id"
+    t.index ["research_run_id", "theme", "source_tier", "overall_quality_score"], name: "idx_research_sources_rank"
+    t.index ["research_run_id", "theme", "url"], name: "idx_research_sources_run_theme_url", unique: true
+    t.index ["research_run_id"], name: "index_research_sources_on_research_run_id"
+    t.check_constraint "authority >= 0 AND authority <= 5", name: "chk_research_sources_authority"
+    t.check_constraint "evidence_quality >= 0 AND evidence_quality <= 5", name: "chk_research_sources_evidence_quality"
+    t.check_constraint "independence >= 0 AND independence <= 5", name: "chk_research_sources_independence"
+    t.check_constraint "methodological_transparency >= 0 AND methodological_transparency <= 5", name: "chk_research_sources_methodological_transparency"
+    t.check_constraint "overall_quality_score >= 0::numeric AND overall_quality_score <= 5::numeric", name: "chk_research_sources_overall_score"
+    t.check_constraint "recency >= 0 AND recency <= 5", name: "chk_research_sources_recency"
+    t.check_constraint "relevance >= 0 AND relevance <= 5", name: "chk_research_sources_relevance"
+    t.check_constraint "source_tier >= 1 AND source_tier <= 4", name: "chk_research_sources_tier"
+  end
+
+  create_table "research_theme_assessments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "evidence_summary", null: false
+    t.text "existing_portfolio_exposure", null: false
+    t.jsonb "falsification_tests", default: [], null: false
+    t.jsonb "highest_quality_exposures", default: [], null: false
+    t.jsonb "missing_exposures", default: [], null: false
+    t.jsonb "narrative_only_beneficiaries", default: [], null: false
+    t.uuid "research_run_id", null: false
+    t.string "status", default: "draft", null: false
+    t.jsonb "structural_bottlenecks", default: [], null: false
+    t.string "theme", null: false
+    t.text "uncertainty_summary", null: false
+    t.datetime "updated_at", null: false
+    t.index ["research_run_id", "theme"], name: "idx_research_theme_assessments_unique", unique: true
+    t.index ["research_run_id"], name: "index_research_theme_assessments_on_research_run_id"
+  end
+
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
   add_foreign_key "account_shares", "accounts"
   add_foreign_key "account_shares", "users"
@@ -3249,5 +3414,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
   add_foreign_key "source_identities", "families", on_delete: :cascade
   add_foreign_key "source_identities", "raw_source_records", on_delete: :nullify
   add_foreign_key "source_identities", "source_identities", column: "supersedes_id", on_delete: :nullify
+  add_foreign_key "investment_recommendation_claims", "investment_recommendations", on_delete: :cascade
+  add_foreign_key "investment_recommendation_claims", "research_claims", on_delete: :cascade
+  add_foreign_key "investment_recommendations", "raw_source_records", column: "price_raw_source_record_id", on_delete: :nullify
+  add_foreign_key "investment_recommendations", "research_runs", on_delete: :cascade
+  add_foreign_key "investment_recommendations", "securities", on_delete: :nullify
+  add_foreign_key "research_claims", "research_runs", on_delete: :cascade
+  add_foreign_key "research_evidences", "research_claims", on_delete: :cascade
+  add_foreign_key "research_evidences", "research_sources", on_delete: :cascade
+  add_foreign_key "research_runs", "families", on_delete: :cascade
+  add_foreign_key "research_sources", "raw_source_records", on_delete: :nullify
+  add_foreign_key "research_sources", "research_runs", on_delete: :cascade
+  add_foreign_key "research_theme_assessments", "research_runs", on_delete: :cascade
 
 end
