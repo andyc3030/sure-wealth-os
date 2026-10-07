@@ -8,6 +8,9 @@ class SourceIdentity < ApplicationRecord
 
   validates :source_system, :entity_type, :external_id, :canonical_type, :canonical_id, presence: true
   validates :confidence, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }
+  validate :raw_source_record_matches_family
+  validate :canonical_matches_family_when_scoped
+  validate :superseded_identity_matches_source_entity
   validates :external_id,
             uniqueness: {
               scope: [ :family_id, :source_system, :entity_type ],
@@ -65,6 +68,31 @@ class SourceIdentity < ApplicationRecord
   end
 
   private
+
+    def raw_source_record_matches_family
+      return if raw_source_record.nil? || raw_source_record.family_id == family_id
+
+      errors.add(:raw_source_record, "must belong to the same family")
+    end
+
+    def canonical_matches_family_when_scoped
+      return if canonical.nil? || !canonical.respond_to?(:family_id) || canonical.family_id.blank?
+      return if canonical.family_id == family_id
+
+      errors.add(:canonical, "must belong to the same family")
+    end
+
+    def superseded_identity_matches_source_entity
+      return if supersedes.nil?
+
+      same_source_entity =
+        supersedes.family_id == family_id &&
+        supersedes.source_system == source_system &&
+        supersedes.entity_type == entity_type &&
+        supersedes.external_id == external_id
+
+      errors.add(:supersedes, "must describe the same source entity") unless same_source_entity
+    end
 
     def prevent_mutation
       errors.add(:base, "source identity versions are immutable; create a superseding version")
