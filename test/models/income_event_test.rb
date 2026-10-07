@@ -230,6 +230,52 @@ class IncomeEventTest < ActiveSupport::TestCase
     assert_includes event.errors[:base], "received income requires a booked entry or raw source record"
   end
 
+  test "received cash may be known while gross income and deductions remain unknown" do
+    family = families(:empty)
+    evidence = income_evidence(family, "cash-only-received")
+
+    event = IncomeEvent.create!(
+      family: family,
+      raw_source_record: evidence,
+      event_key: "interest:cash-only",
+      income_type: "interest",
+      state: "received",
+      amount: nil,
+      cash_amount: 85,
+      tax_withheld: nil,
+      fees: nil,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    summary = WealthOs::Income::LifecycleSummary.new(IncomeEvent.where(family: family)).call
+
+    assert_nil event.amount
+    assert_equal BigDecimal("85"), event.received_cash
+    assert_equal BigDecimal("0"), summary["USD"]["received"]
+    assert_equal BigDecimal("85"), summary["USD"]["received_cash"]
+    assert_equal BigDecimal("85"), summary["USD"]["received_gross_unknown_cash"]
+  end
+
+  test "known gross and complete deductions must reconcile to received cash" do
+    family = families(:empty)
+    event = IncomeEvent.create!(
+      family: family,
+      raw_source_record: income_evidence(family, "gross-reconciled"),
+      event_key: "dividend:gross-reconciled",
+      income_type: "dividend",
+      state: "received",
+      amount: 100,
+      cash_amount: 85,
+      tax_withheld: 10,
+      fees: 5,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_equal BigDecimal("85"), event.received_cash
+  end
+
   private
 
     def income_evidence(family, key)
