@@ -3041,6 +3041,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.check_constraint "status::text = ANY (ARRAY['observed'::character varying, 'validated'::character varying, 'applied'::character varying, 'reconciled'::character varying, 'ignored'::character varying]::text[])", name: "chk_corporate_actions_status"
   end
 
+  create_table "corporate_action_transitions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "corporate_action_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "from_status"
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "reason"
+    t.jsonb "snapshot", default: {}, null: false
+    t.string "to_status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["corporate_action_id", "occurred_at"], name: "idx_corporate_action_transitions_timeline"
+    t.index ["corporate_action_id"], name: "index_corporate_action_transitions_on_corporate_action_id"
+    t.index ["family_id"], name: "index_corporate_action_transitions_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_corporate_action_transitions_on_raw_source_record_id"
+  end
+
   create_table "raw_source_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id"
     t.uuid "account_provider_id"
@@ -3360,6 +3377,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
   add_foreign_key "liability_payments", "entries", on_delete: :nullify
   add_foreign_key "liability_payments", "families", on_delete: :cascade
   add_foreign_key "liability_payments", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_action_transitions", "corporate_actions", on_delete: :cascade
+  add_foreign_key "corporate_action_transitions", "families", on_delete: :cascade
+  add_foreign_key "corporate_action_transitions", "raw_source_records", on_delete: :nullify
   add_foreign_key "corporate_actions", "accounts", on_delete: :nullify
   add_foreign_key "corporate_actions", "families", on_delete: :cascade
   add_foreign_key "corporate_actions", "raw_source_records", on_delete: :nullify
