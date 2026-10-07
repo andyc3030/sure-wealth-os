@@ -1,4 +1,4 @@
-# PlaidEuAdapter is a configuration-only manager for Plaid EU credentials.
+# PlaidEuAdapter is a configuration-only manager for Plaid Europe/UK credentials.
 #
 # It does NOT register as a provider type because:
 # - There's no separate "PlaidEuAccount" model
@@ -17,20 +17,20 @@ class Provider::PlaidEuAdapter
   # Initialized at class load time to avoid race conditions on mutex creation
   @config_mutex = Mutex.new
 
-  # Configuration for Plaid EU
+  # Configuration for Plaid Europe/UK
   configure do
     field :client_id,
           label: "Client ID",
           required: false,
           env_key: "PLAID_EU_CLIENT_ID",
-          description: "Your Plaid Client ID from the Plaid Dashboard for EU region"
+          description: "Your Plaid Client ID from the Plaid Dashboard for Europe/UK region"
 
     field :secret,
           label: "Secret Key",
           required: false,
           secret: true,
           env_key: "PLAID_EU_SECRET",
-          description: "Your Plaid Secret from the Plaid Dashboard for EU region"
+          description: "Your Plaid Secret from the Plaid Dashboard for Europe/UK region"
 
     field :environment,
           label: "Environment",
@@ -39,11 +39,11 @@ class Provider::PlaidEuAdapter
           default: "sandbox",
           description: "Plaid environment: sandbox, development, or production"
 
-    # Plaid EU requires both client_id and secret to be configured
+    # Plaid Europe/UK requires both client_id and secret to be configured
     configured_check { get_value(:client_id).present? && get_value(:secret).present? }
   end
 
-  # Thread-safe lazy loading of Plaid EU configuration
+  # Thread-safe lazy loading of Plaid Europe/UK configuration
   # Ensures configuration is loaded exactly once even under concurrent access
   def self.ensure_configuration_loaded
     # Fast path: return immediately if already loaded (no lock needed)
@@ -58,7 +58,7 @@ class Provider::PlaidEuAdapter
     end
   end
 
-  # Reload Plaid EU configuration when settings are updated
+  # Reload Plaid Europe/UK configuration when settings are updated
   def self.reload_configuration
     client_id = config_value(:client_id).presence || ENV["PLAID_EU_CLIENT_ID"]
     secret = config_value(:secret).presence || ENV["PLAID_EU_SECRET"]
