@@ -226,3 +226,37 @@ A source entity has exactly one immutable root mapping and each identity version
 ### Conflict idempotency
 
 A disagreement between the same two immutable raw records for the same field is one conflict record for its lifetime. Once resolved, rerunning reconciliation returns that same resolved conflict rather than opening a duplicate.
+
+
+## Research provenance extension
+
+Investment research uses a parallel provenance chain:
+
+```
+ResearchRun
+  ↓
+ResearchSource
+  ↓
+ResearchEvidence
+  ↓
+ResearchClaim
+  ↓
+ResearchThemeAssessment
+  ↓
+InvestmentRecommendation
+```
+
+Research provenance does **not** replace financial-source authority.
+
+A Reuters article, podcast, analyst note or academic paper may support an investment claim, but it cannot overwrite:
+
+- a bank balance;
+- a broker position quantity;
+- a lender balance;
+- a market price;
+- an FX rate;
+- any other canonical financial fact whose authority is defined separately.
+
+Current-price fields in recommendations require immutable raw source provenance, currency and an as-of timestamp.
+
+Important investment claims require at least two independent accepted publishers. Research conflicts remain visible rather than being silently averaged away.
