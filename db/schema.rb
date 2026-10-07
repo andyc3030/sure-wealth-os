@@ -2994,6 +2994,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.uuid "successor_security_id"
     t.datetime "updated_at", null: false
     t.index ["family_id", "security_id", "effective_date"], name: "idx_corporate_actions_position_math"
+    t.index ["family_id", "security_id", "action_type", "effective_date"], name: "idx_corporate_actions_unique_confirmed_split", unique: true, where: "(((status)::text = 'confirmed'::text) AND ((action_type)::text = ANY ((ARRAY['stock_split'::character varying, 'reverse_split'::character varying])::text[])))"
     t.index ["family_id", "source_system", "external_id"], name: "idx_corporate_actions_source_identity", unique: true, where: "((external_id IS NOT NULL) AND (source_system IS NOT NULL))"
     t.index ["family_id"], name: "index_corporate_actions_on_family_id"
     t.index ["raw_source_record_id"], name: "index_corporate_actions_on_raw_source_record_id"
@@ -3032,6 +3033,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_income_events_on_account_id"
     t.index ["family_id", "event_key", "created_at"], name: "idx_income_events_lifecycle"
+    t.index ["family_id", "event_key"], name: "idx_income_events_unique_root", unique: true, where: "(supersedes_id IS NULL)"
     t.index ["family_id", "state", "effective_date"], name: "idx_income_events_reporting"
     t.index ["family_id"], name: "index_income_events_on_family_id"
     t.index ["raw_source_record_id"], name: "index_income_events_on_raw_source_record_id"
@@ -3069,6 +3071,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.index ["family_id", "source_system", "external_id"], name: "idx_liability_payments_source_identity", unique: true, where: "((external_id IS NOT NULL) AND (source_system IS NOT NULL))"
     t.index ["family_id"], name: "index_liability_payments_on_family_id"
     t.index ["loan_id", "payment_date"], name: "idx_liability_payments_schedule"
+    t.index ["loan_id", "payment_date", "source_system"], name: "idx_liability_payments_unique_schedule", unique: true, where: "((state)::text = 'scheduled'::text AND (source_system IS NOT NULL))"
     t.index ["loan_id"], name: "index_liability_payments_on_loan_id"
     t.index ["raw_source_record_id"], name: "index_liability_payments_on_raw_source_record_id"
     t.check_constraint "fee_amount >= 0::numeric", name: "chk_liability_payments_fee_amount_non_negative"
