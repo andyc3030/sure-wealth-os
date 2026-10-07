@@ -1,6 +1,6 @@
 # MCP Server for External AI Assistants
 
-Sure includes a Model Context Protocol (MCP) server endpoint that allows external AI assistants like Claude.ai, Claude Desktop, GPT agents, or custom AI clients to query and act on your financial data.
+Sure includes a Model Context Protocol (MCP) server endpoint that allows external AI assistants like Claude.ai, Claude Desktop, GPT agents, or custom AI clients to query your financial data.
 
 ## What is MCP?
 
@@ -23,7 +23,7 @@ This is the best option for Claude.ai and other MCP clients that support OAuth. 
 - `/.well-known/oauth-authorization-server`
 - `POST /register` for dynamic client registration
 
-These endpoints let compatible MCP clients register a public OAuth client, redirect you back to Sure for sign-in, and receive a bearer token with the `read_write` scope.
+These endpoints let compatible MCP clients register a public OAuth client, redirect you back to Sure for sign-in, and receive a bearer token with the `read` scope.
 
 ### 2. Static bearer token via environment variables
 
@@ -54,8 +54,8 @@ openssl rand -base64 32
 
 The `MCP_USER_EMAIL` must match an existing Sure user's email address. The AI assistant will have access to all financial data for that user's family.
 
-> [!CAUTION]
-> The AI assistant can call the MCP tools available to the specified user. This includes reading financial data and write-capable tools such as statement import, goal/category/tag changes, transaction updates, and budget updates. Only set this for users you trust with your AI provider.
+> [!IMPORTANT]
+> This Wealth OS fork exposes a read-only MCP tool registry. MCP can query financial data and analytics but cannot import statements, edit transactions, change budgets/categories/tags, record valuations, mutate bills, trade, transfer, withdraw, borrow, or modify financial source records.
 
 ## Configuration
 
@@ -101,7 +101,7 @@ POST /mcp
 
 MCP supports OAuth authorization-code flow for clients such as Claude Code.
 Clients should discover the protected-resource metadata, register dynamically,
-request the advertised `read_write` scope, and send the resulting access token
+request the advertised `read` scope, and send the resulting access token
 as a Bearer token. Dynamically registered clients are assigned this scope so
 their tokens can authenticate to MCP.
 
@@ -129,7 +129,7 @@ Sure implements the following JSON-RPC 2.0 methods:
 
 ### Available Tools
 
-The MCP endpoint exposes the same tool registry used by Sure's built-in assistant. Clients should treat `tools/list` as the source of truth.
+The MCP endpoint exposes the same read-only tool registry used by this fork's built-in assistant. Clients should treat `tools/list` as the source of truth. Mutating function classes remain available to normal application workflows but are deliberately excluded from AI/MCP.
 
 At the time of writing, `tools/list` includes:
 
@@ -142,16 +142,10 @@ At the time of writing, `tools/list` includes:
 | `get_balance_sheet` | Net worth, assets and liabilities with a configurable history period and interval |
 | `get_income_statement` | Income and expenses for a period, with optional monthly series, prior-period comparison and account filtering |
 | `get_budget` | Budget summary for a month, with optional prior months |
-| `get_merchants` | Merchants with the ids `update_transaction` accepts and the exact names `get_transactions` filters on |
+| `get_merchants` | Merchants relevant to the user's transactions, with stable ids and names for read-only filtering |
 | `get_tags` | Tags with pagination |
 | `get_categories` | Categories with hierarchy and pagination |
-| `create_goal` | Create a savings goal linked to depository accounts |
-| `create_tag` / `update_tag` | Manage tags |
-| `create_category` / `update_category` | Manage categories |
-| `update_transaction` | Edit a transaction's metadata (name, notes, category, merchant, tags) |
-| `update_budget` | Update budget allocations for a month |
-| `import_bank_statement` | Import bank statement data |
-| `search_family_files` | Search documents uploaded through the import flow. Note this is the vector-store document index, not the Statement Vault — statements archived via `upload_account_statement` are not searchable through it |
+| `search_family_files` | Search documents uploaded through the import flow (read-only vector-store search) |
 
 ### Preview Tools
 
@@ -163,27 +157,21 @@ permissions enforced in the web UI.
 
 | Tool | Description |
 |------|-------------|
-| `upload_account_statement` | Store a statement document (PDF/CSV/XLSX) in the Statement Vault; deduplicates by SHA-256 |
 | `list_account_statements` | List vault documents with their SHA-256, period, linked account and review status |
 | `get_account_statement` | One statement's details and its reconciliation checks against the ledger — present only once someone has entered the statement's opening/closing balances in the web UI, since nothing extracts them from the document. Does not return the file: stored documents are served only to a signed-in browser session |
 | `get_statement_coverage` | Month-by-month statement coverage for an account: `covered`, `missing`, `mismatched`, `ambiguous`, `duplicate`, `not_expected`, each with a reconciliation status |
-| `record_valuation` | Record an account's value on a date, with a required source citation |
-| `get_valuations` | List recorded valuations newest first, including the citation stored in each entry's notes; the read pair for `record_valuation` |
+| `get_valuations` | List recorded valuations newest first, including the source citation stored with each valuation |
 | `get_insights` | Read the proactive insights feed (spending anomalies, cash-flow warnings, subscription audits and more) without marking anything read |
 | `get_bills` | List bills, subscriptions and other recurring obligations with each one's current payment state |
 | `get_bill_details` | One bill's full configuration, open occurrences, payment history, price-change history and cost analytics |
 | `get_paycheck_plan` | Income plan sliced into pay periods: what is due before the next payday, what stays reserved for later bills, what is safe to spend |
 | `get_bill_audit` | Deterministic bills review: possible duplicates, price changes, trials about to convert, upcoming renewals, long-overdue bills and undeclared recurring patterns |
-| `create_bill` | Create a bill, subscription, installment plan or income schedule |
-| `update_bill` | Update one bill's configuration; amount changes apply from today forward |
-| `record_bill_payment` | Record a partial payment against a bill's open occurrence, or settle it in full |
 
-Because tool calls never pass through the Bills pages' controllers, the bills
-tools re-check the family's recurring-transactions feature gate (Settings →
+Because tool calls never pass through the Bills pages' controllers, the read-only
+bills tools re-check the family's recurring-transactions feature gate (Settings →
 Recurring transactions) and the MCP user's per-account access on every call.
-With the feature disabled they return an error result instead of data, bills
-tied to accounts the user cannot see are never returned, and the write tools
-refuse series on accounts shared with the user read-only.
+With the feature disabled they return an error result instead of data, and bills
+tied to accounts the user cannot see are never returned.
 
 They exist for agents that maintain a document-backed record of a family's
 wealth over time. See
@@ -256,7 +244,7 @@ The authorization-server metadata includes:
 - `authorization_endpoint`: `https://your-sure-instance/oauth/authorize`
 - `token_endpoint`: `https://your-sure-instance/oauth/token`
 - `registration_endpoint`: `https://your-sure-instance/register`
-- `scopes_supported`: `["read_write"]`
+- `scopes_supported`: `["read", "read_write"]` (MCP clients registered by this fork receive and request `read`)
 
 ### Call a Tool
 

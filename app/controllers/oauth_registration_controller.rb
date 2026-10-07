@@ -54,10 +54,10 @@ class OauthRegistrationController < ApplicationController
       name: client_name,
       redirect_uri: redirect_uris.join("\n"),
       confidential: false,
-      # MCP requires the read_write scope. Without assigning it to the
-      # dynamically registered client, Doorkeeper falls back to the provider's
-      # default read scope and the token is rejected by McpController.
-      scopes: "read_write"
+      # Wealth OS MCP clients are intentionally read-only. The application-wide
+      # read_write scope remains available for non-AI APIs, but dynamically
+      # registered MCP clients never receive it.
+      scopes: "read"
     )
 
     if app.save
