@@ -27,10 +27,13 @@ de:
       dividend: Dividende
       interest: Zinsen
       contribution: Einlage
+      distribution: Ausschüttung
       exchange: Umtausch
       fee: Gebühr
       other: Sonstige
       reinvestment: Reinvestition
+      return_of_capital: Kapitalrückzahlung
+      substitute_dividend: Dividendenersatz
       sweep_in: Sweep In
       sweep_out: Sweep Out
       transfer: Überweisung
