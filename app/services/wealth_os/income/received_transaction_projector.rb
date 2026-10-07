@@ -28,20 +28,19 @@ module WealthOs
           income_type
         ].join(":")
 
+        source_system = entry.source.presence || "manual"
         attrs = {
           account: entry.account,
-          security: transaction.activity_security,
           entry: entry,
-          raw_source_record: entry.raw_source_record,
-          amount: entry.amount.to_d.abs,
           cash_amount: entry.amount.to_d.abs,
-          currency: entry.currency,
           effective_date: entry.date,
           payable_on: entry.date,
-          source_system: entry.source,
-          method: "booked_transaction",
+          source_system: source_system,
+          method: "booked_transaction_cash_only",
           confidence: "confirmed"
         }
+        attrs[:security] = transaction.activity_security if transaction.activity_security.present?
+        attrs[:raw_source_record] = entry.raw_source_record if entry.raw_source_record.present?
 
         current = IncomeEvent.current_for(family: entry.account.family, event_key: event_key)
         if current
@@ -50,7 +49,6 @@ module WealthOs
                       current.security_id == attrs[:security]&.id &&
                       current.entry_id == entry.id &&
                       current.raw_source_record_id == attrs[:raw_source_record]&.id &&
-                      current.amount.to_d == attrs[:amount] &&
                       current.cash_amount.to_d == attrs[:cash_amount] &&
                       current.effective_date == attrs[:effective_date] &&
                       current.source_system == attrs[:source_system] &&
@@ -66,6 +64,10 @@ module WealthOs
           event_key: event_key,
           income_type: income_type,
           state: "received",
+          amount: nil,
+          tax_withheld: nil,
+          fees: nil,
+          currency: entry.currency,
           **attrs
         )
       end
