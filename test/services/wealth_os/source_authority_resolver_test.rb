@@ -73,4 +73,59 @@ class WealthOs::SourceAuthorityResolverTest < ActiveSupport::TestCase
       resolver.resolve(records: [ record ])
     end
   end
+  test "a resolved conflict is not recreated for the same immutable raw pair" do
+    family = families(:dylan_family)
+    account = accounts(:depository)
+
+    SourceAuthorityRule.create!(
+      family: family,
+      record_type: "cash",
+      field_name: "value",
+      source_system: "plaid",
+      priority: 10
+    )
+    SourceAuthorityRule.create!(
+      family: family,
+      record_type: "cash",
+      field_name: "value",
+      source_system: "manual",
+      priority: 20
+    )
+
+    plaid = RawSourceRecord.ingest!(
+      family: family,
+      account: account,
+      source_system: "plaid",
+      record_type: "cash",
+      source_key: "cash-a",
+      payload: { "value" => "100" }
+    )
+    manual = RawSourceRecord.ingest!(
+      family: family,
+      account: account,
+      source_system: "manual",
+      record_type: "cash",
+      source_key: "cash-b",
+      payload: { "value" => "90" }
+    )
+
+    resolver = WealthOs::SourceAuthorityResolver.new(
+      family: family,
+      account: account,
+      record_type: "cash",
+      field_name: "value"
+    )
+
+    first = resolver.resolve(records: [ plaid, manual ])
+    first.conflict.resolve!(selected_source_record: plaid, rule: "plaid_authoritative")
+    second = resolver.resolve(records: [ plaid, manual ])
+
+    assert_equal first.conflict.id, second.conflict.id
+    assert_equal "resolved", second.conflict.status
+    assert_equal 1, SourceConflict.where(
+      source_record_a: first.conflict.source_record_a,
+      source_record_b: first.conflict.source_record_b,
+      field_name: "value"
+    ).count
+  end
 end
