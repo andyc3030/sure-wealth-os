@@ -19,6 +19,7 @@ class ResearchSourceScore < ApplicationRecord
   validates :overall_score, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 5 }
 
   before_validation :calculate_overall_score
+  validate :source_matches_family
 
   private
 
@@ -27,5 +28,11 @@ class ResearchSourceScore < ApplicationRecord
       return if values.any?(&:nil?)
 
       self.overall_score = (values.sum(&:to_d) / values.length).round(2)
+    end
+
+    def source_matches_family
+      return if research_source.nil? || research_source.family_id == family_id
+
+      errors.add(:research_source, "must belong to the same family")
     end
 end
