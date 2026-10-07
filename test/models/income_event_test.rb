@@ -143,4 +143,73 @@ class IncomeEventTest < ActiveSupport::TestCase
     assert_not event.valid?
     assert_includes event.errors[:state], "dividend income must remain forecast until it is declared or received"
   end
+  test "transition cannot override lifecycle identity or state" do
+    event = IncomeEvent.create!(
+      family: families(:empty),
+      event_key: "interest:locked",
+      income_type: "interest",
+      state: "forecast",
+      amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_raises(ArgumentError) do
+      event.transition_to!("received", event_key: "different", amount: 10)
+    end
+
+    assert_raises(ArgumentError) do
+      event.transition_to!("received", state: "forecast", amount: 10)
+    end
+  end
+
+  test "received cash must reconcile to gross less withholding and fees" do
+    event = IncomeEvent.new(
+      family: families(:empty),
+      event_key: "dividend:cash-reconcile",
+      income_type: "dividend",
+      state: "received",
+      amount: 100,
+      cash_amount: 80,
+      tax_withheld: 10,
+      fees: 5,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not event.valid?
+    assert_includes event.errors[:cash_amount], "must equal gross income minus withholding tax and fees"
+  end
+
+  test "cash amount is not permitted before received state" do
+    event = IncomeEvent.new(
+      family: families(:empty),
+      event_key: "interest:no-cash-before-received",
+      income_type: "interest",
+      state: "declared",
+      amount: 10,
+      cash_amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not event.valid?
+    assert_includes event.errors[:cash_amount], "can only be recorded for received income"
+  end
+
+  test "generic other income cannot be accrued without a defined accrual rule" do
+    event = IncomeEvent.new(
+      family: families(:empty),
+      event_key: "other:no-accrual",
+      income_type: "other",
+      state: "accrued",
+      amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not event.valid?
+    assert_includes event.errors[:state], "other income must remain forecast until it is declared or received"
+  end
+
 end
