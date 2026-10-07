@@ -87,5 +87,4 @@ class CorporateActionTest < ActiveSupport::TestCase
 
     assert_raises(ArgumentError) { action.transition_to!("validated") }
   end
-
 end
