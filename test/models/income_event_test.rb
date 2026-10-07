@@ -29,7 +29,8 @@ class IncomeEventTest < ActiveSupport::TestCase
       cash_amount: 85,
       tax_withheld: 10,
       effective_date: Date.current + 14,
-      payable_on: Date.current + 14
+      payable_on: Date.current + 14,
+      raw_source_record: income_evidence(family, "dividend-received")
     )
 
     current = IncomeEvent.current.where(family: family, event_key: "dividend:abc").to_a
@@ -54,7 +55,8 @@ class IncomeEventTest < ActiveSupport::TestCase
       amount: 10,
       cash_amount: 10,
       currency: "USD",
-      effective_date: Date.current
+      effective_date: Date.current,
+      raw_source_record: income_evidence(families(:empty), "received-backwards")
     )
 
     invalid = event.transition_to!("forecast", amount: 11)
@@ -211,5 +213,33 @@ class IncomeEventTest < ActiveSupport::TestCase
     assert_not event.valid?
     assert_includes event.errors[:state], "other income must remain forecast until it is declared or received"
   end
+
+  test "received income requires a booked entry or raw source record" do
+    event = IncomeEvent.new(
+      family: families(:empty),
+      event_key: "interest:no-evidence",
+      income_type: "interest",
+      state: "received",
+      amount: 10,
+      cash_amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not event.valid?
+    assert_includes event.errors[:base], "received income requires a booked entry or raw source record"
+  end
+
+  private
+
+    def income_evidence(family, key)
+      RawSourceRecord.ingest!(
+        family: family,
+        source_system: "test_income_source",
+        record_type: "income",
+        source_key: key,
+        payload: { "verified" => true }
+      )
+    end
 
 end
