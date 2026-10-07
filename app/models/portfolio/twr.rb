@@ -11,16 +11,18 @@ class Portfolio::Twr
   attr_reader :segments
 
   def initialize(segments)
-    @segments = Array(segments).map do |segment|
+    mapped = Array(segments).map do |segment|
       segment.is_a?(Segment) ? segment : Segment.new(**segment)
-    end.sort_by(&:date).freeze
+    end
 
-    raise InvalidSegment, "segment date is required" if @segments.any? { |segment| segment.date.nil? }
+    raise InvalidSegment, "segment date is required" if mapped.any? { |segment| segment.date.nil? }
 
-    dates = @segments.map(&:date)
+    dates = mapped.map(&:date)
     if dates.uniq.length != dates.length
       raise InvalidSegment, "multiple TWR segments on the same date are ambiguous"
     end
+
+    @segments = mapped.sort_by(&:date).freeze
   end
 
   def rate
