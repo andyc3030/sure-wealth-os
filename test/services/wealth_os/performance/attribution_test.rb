@@ -5,7 +5,7 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
     result = WealthOs::Performance::Attribution.call(
       opening_value: 1000,
       closing_value: 1200,
-      capital_return: 135,
+      capital_return: 150,
       contributions: 100,
       withdrawals: 50,
       income: 40,
@@ -16,7 +16,7 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
       fx_effect: 10
     )
 
-    assert_equal BigDecimal("135"), result.capital_return
+    assert_equal BigDecimal("150"), result.capital_return
     assert_equal BigDecimal("5"), result.tax_withheld
     assert_equal BigDecimal("15"), result.insurance_cost
     assert_equal BigDecimal("200"), result.explained_change
