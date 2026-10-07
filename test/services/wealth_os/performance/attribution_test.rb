@@ -8,12 +8,14 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
       contributions: 100,
       withdrawals: 50,
       income: 40,
+      tax_withheld: 5,
       fees: 10,
       financing_cost: 20,
       fx_effect: 10
     )
 
-    assert_equal BigDecimal("130"), result.capital_return
+    assert_equal BigDecimal("135"), result.capital_return
+    assert_equal BigDecimal("5"), result.tax_withheld
     assert_equal BigDecimal("200"), result.explained_change
     assert_equal BigDecimal("0"), result.unexplained_change
   end
