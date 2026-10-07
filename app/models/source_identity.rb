@@ -8,6 +8,13 @@ class SourceIdentity < ApplicationRecord
 
   validates :source_system, :entity_type, :external_id, :canonical_type, :canonical_id, presence: true
   validates :confidence, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }
+  validates :external_id,
+            uniqueness: {
+              scope: [ :family_id, :source_system, :entity_type ],
+              conditions: -> { where(supersedes_id: nil) },
+              message: "already has a root identity mapping"
+            },
+            if: -> { supersedes_id.nil? }
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
@@ -47,6 +54,13 @@ class SourceIdentity < ApplicationRecord
         verified_at: verified_at,
         supersedes: current
       )
+    rescue ActiveRecord::RecordNotUnique
+      latest = scope.order(created_at: :desc).first
+      return latest if latest&.canonical_type == canonical.class.polymorphic_name &&
+                       latest&.canonical_id == canonical.id &&
+                       latest&.confidence == confidence.to_d
+
+      raise
     end
   end
 
