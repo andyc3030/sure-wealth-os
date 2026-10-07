@@ -15,6 +15,7 @@ module WealthOs
 
         income_type = LABEL_TO_TYPE[transaction.investment_activity_label]
         return nil unless income_type
+        return nil unless entry.amount.to_d.negative?
 
         # Provider transaction identifiers are commonly scoped to an account,
         # not guaranteed unique across a whole family. Include the canonical
@@ -31,7 +32,6 @@ module WealthOs
           account: entry.account,
           security: transaction.activity_security,
           raw_source_record: entry.raw_source_record,
-          state: "received",
           amount: entry.amount.to_d.abs,
           cash_amount: entry.amount.to_d.abs,
           currency: entry.currency,
@@ -44,10 +44,17 @@ module WealthOs
 
         current = IncomeEvent.current_for(family: entry.account.family, event_key: event_key)
         if current
-          return current if current.state == "received" &&
-                            current.amount.to_d == attrs[:amount] &&
-                            current.cash_amount.to_d == attrs[:cash_amount] &&
-                            current.effective_date == attrs[:effective_date]
+          unchanged = current.state == "received" &&
+                      current.account_id == attrs[:account].id &&
+                      current.security_id == attrs[:security]&.id &&
+                      current.raw_source_record_id == attrs[:raw_source_record]&.id &&
+                      current.amount.to_d == attrs[:amount] &&
+                      current.cash_amount.to_d == attrs[:cash_amount] &&
+                      current.effective_date == attrs[:effective_date] &&
+                      current.source_system == attrs[:source_system] &&
+                      current.method == attrs[:method] &&
+                      current.confidence == attrs[:confidence]
+          return current if unchanged
 
           return current.transition_to!("received", **attrs)
         end
@@ -56,6 +63,7 @@ module WealthOs
           family: entry.account.family,
           event_key: event_key,
           income_type: income_type,
+          state: "received",
           **attrs
         )
       end
