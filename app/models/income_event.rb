@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class IncomeEvent < ApplicationRecord
+  include SourceTraceable
   STATES = %w[forecast accrued declared received].freeze
   TYPES = %w[dividend interest coupon distribution rent other].freeze
   CONFIDENCE_LEVELS = %w[confirmed high estimated low unknown].freeze
@@ -15,7 +16,6 @@ class IncomeEvent < ApplicationRecord
   belongs_to :family
   belongs_to :account, optional: true
   belongs_to :security, optional: true
-  belongs_to :raw_source_record, optional: true
   belongs_to :supersedes, class_name: "IncomeEvent", optional: true
   has_one :successor, class_name: "IncomeEvent", foreign_key: :supersedes_id
 
@@ -26,6 +26,13 @@ class IncomeEvent < ApplicationRecord
   validates :amount, :tax_withheld, :fees, numericality: { greater_than_or_equal_to: 0 }
   validates :cash_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :currency, length: { is: 3 }
+  validates :event_key,
+            uniqueness: {
+              scope: :family_id,
+              conditions: -> { where(supersedes_id: nil) },
+              message: "already has a lifecycle root"
+            },
+            if: -> { supersedes_id.nil? }
   validate :superseded_event_matches_identity
   validate :state_transition_is_allowed
 
