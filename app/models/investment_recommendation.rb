@@ -31,6 +31,8 @@ class InvestmentRecommendation < ApplicationRecord
             allow_nil: true
   validate :price_provenance_complete
   validate :entry_zone_order
+  validate :action_matches_portfolio_status
+  validate :weight_requires_existing_position
 
   def price_provenance_complete
     price_fields = [ current_price, price_currency, price_as_of_at, price_raw_source_record_id ]
@@ -38,6 +40,20 @@ class InvestmentRecommendation < ApplicationRecord
     return if price_fields.none?(&:nil?)
 
     errors.add(:current_price, "requires currency, as-of timestamp and raw source provenance")
+  end
+
+  def action_matches_portfolio_status
+    existing_actions = %w[increase hold reduce exit]
+    return unless existing_actions.include?(action)
+    return if portfolio_status == "existing"
+
+    errors.add(:portfolio_status, "must be existing for increase/hold/reduce/exit")
+  end
+
+  def weight_requires_existing_position
+    return if current_weight_pct.nil? || portfolio_status == "existing"
+
+    errors.add(:current_weight_pct, "requires an existing portfolio position")
   end
 
   def entry_zone_order
