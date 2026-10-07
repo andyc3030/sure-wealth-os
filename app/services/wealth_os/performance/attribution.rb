@@ -11,18 +11,35 @@ module WealthOs
 
       def self.call(opening_value:, closing_value:, capital_return:, contributions: 0, withdrawals: 0,
                     income: 0, tax_withheld: 0, fees: 0, financing_cost: 0, insurance_cost: 0, fx_effect: 0)
-        opening = opening_value.to_d
-        closing = closing_value.to_d
-        contributions = contributions.to_d
-        withdrawals = withdrawals.to_d
-        income = income.to_d
-        tax = tax_withheld.to_d
-        fees = fees.to_d
-        financing = financing_cost.to_d
-        insurance = insurance_cost.to_d
-        fx = fx_effect.to_d
+        values = {
+          opening_value: opening_value,
+          closing_value: closing_value,
+          capital_return: capital_return,
+          contributions: contributions,
+          withdrawals: withdrawals,
+          income: income,
+          tax_withheld: tax_withheld,
+          fees: fees,
+          financing_cost: financing_cost,
+          insurance_cost: insurance_cost,
+          fx_effect: fx_effect
+        }
+        missing = values.select { |_name, value| value.nil? }.keys
+        raise ArgumentError, "nil attribution components: #{missing.join(", ")}" if missing.any?
 
-        capital = capital_return.to_d
+        decimal = ->(value) { value.to_d }
+        opening = decimal.call(opening_value)
+        closing = decimal.call(closing_value)
+        contributions = decimal.call(contributions)
+        withdrawals = decimal.call(withdrawals)
+        income = decimal.call(income)
+        tax = decimal.call(tax_withheld)
+        fees = decimal.call(fees)
+        financing = decimal.call(financing_cost)
+        insurance = decimal.call(insurance_cost)
+        fx = decimal.call(fx_effect)
+
+        capital = decimal.call(capital_return)
 
         # Capital return is supplied by the deterministic valuation/performance
         # engine rather than manufactured as the balancing residual. That keeps
