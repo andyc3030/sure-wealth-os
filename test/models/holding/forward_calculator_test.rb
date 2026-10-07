@@ -237,6 +237,13 @@ class Holding::ForwardCalculatorTest < ActiveSupport::TestCase
     Security::Price.create!(security: security, date: Date.current, price: 50)
 
     create_trade(security, qty: 10, date: buy_date, price: 100, account: @account)
+    evidence = RawSourceRecord.ingest!(
+      family: @account.family,
+      source_system: "test_market_data",
+      record_type: "corporate_action",
+      source_key: "forward-split",
+      payload: { "ratio" => "2:1" }
+    )
     CorporateAction.create!(
       family: @account.family,
       security: security,
@@ -244,7 +251,8 @@ class Holding::ForwardCalculatorTest < ActiveSupport::TestCase
       status: "confirmed",
       effective_date: split_date,
       ratio_numerator: 2,
-      ratio_denominator: 1
+      ratio_denominator: 1,
+      raw_source_record: evidence
     )
 
     calculated = Holding::ForwardCalculator.new(@account).calculate
