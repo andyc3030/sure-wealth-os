@@ -100,3 +100,75 @@ The same lineage pattern can later be attached to:
 - daily snapshots.
 
 No new field should bypass source authority/reconciliation merely because it is added later.
+
+
+## Research/advice amendment tables
+
+### research_runs
+
+Auditable research snapshots with family, as-of timestamp, methodology version and status.
+
+### research_sources
+
+Per-run/per-theme evaluated research sources with:
+
+- source type and tier;
+- publication/retrieval dates;
+- six 0–5 quality scores;
+- computed overall research-quality score;
+- support/challenge/mixed/neutral thesis position;
+- primary/institutional, academic and industry flags;
+- promotional/commercial-conflict metadata;
+- accepted/downgraded/rejected status;
+- optional immutable raw-source link.
+
+### research_claims
+
+Evidence statements classified as:
+
+- factual evidence;
+- forecast;
+- opinion;
+- assumption;
+- promotional material;
+- investment recommendation.
+
+Important claims can be tested for independent cross-check coverage.
+
+### research_evidences
+
+Claim→source links with support/challenge/context role, evidence summary, pinpoint reference and independence flag.
+
+### research_theme_assessments
+
+One assessment per theme/run containing:
+
+- what the evidence says;
+- genuine uncertainty;
+- falsification tests;
+- structural bottlenecks;
+- highest-quality exposures;
+- narrative-only beneficiaries;
+- existing portfolio exposure;
+- missing exposures.
+
+### investment_recommendations
+
+Advisory-only security conclusions with:
+
+- increase / hold / reduce / exit / consider / avoid;
+- core or aggressive-scenario sleeve;
+- valuation and price context;
+- entry/invalidation fields when evidenced;
+- 3–5 year thesis;
+- catalyst and risks;
+- correlation/portfolio context;
+- competitive-position, capital-intensity, cash-generation and balance-sheet analysis;
+- current/proposed portfolio weights where applicable;
+- current-price raw-source provenance.
+
+### investment_recommendation_claims
+
+Recommendation→claim evidence lineage.
+
+No recommendation table or service is permitted to initiate execution.

@@ -59,3 +59,22 @@ Resolver behavior:
 7. return the selected raw record/value and the rule that justified it.
 
 There is no implicit source fallback when no rule exists.
+
+
+## Financial authority vs research quality
+
+Financial-source authority and investment-research ranking are separate systems.
+
+`SourceAuthorityRule` determines which source is authoritative for canonical financial fields.
+
+`ResearchSource` scoring determines the evidential quality of material used to support or challenge an investment thesis.
+
+Research material must never overwrite canonical financial facts merely because it has a high research-quality score.
+
+Research ranking uses:
+
+1. source tier;
+2. six-dimension quality score;
+3. publication date as a secondary tie-breaker.
+
+This prevents a persuasive or recent podcast/opinion source from outranking primary institutional evidence.

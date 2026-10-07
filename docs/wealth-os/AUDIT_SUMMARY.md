@@ -55,3 +55,22 @@ Sure remains the application chassis for:
 - existing money-weighted return and loan-amortization capabilities.
 
 The Wealth OS fork extends and hardens these rather than replacing them.
+
+
+## Research/advice amendment to the original audit
+
+The original 48-section audit did not fully specify an institutional investment-research and advisory layer.
+
+The amended Wealth OS now requires:
+
+- seven-theme evidence-led research;
+- source-quality scoring and tier-first ranking;
+- counter-thesis quotas;
+- independent claim cross-checking;
+- per-theme investment translation;
+- Top-25 source selection;
+- portfolio increase/hold/reduce/exit/consider/avoid outputs;
+- valuation, competitive-position, capital-intensity, cash-generation, balance-sheet and downside analysis;
+- advisory-only recommendations with no execution path.
+
+These requirements are implemented as an extension to Phases 1–3 rather than weakening the existing read-only/security/accounting architecture.
