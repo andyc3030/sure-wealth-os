@@ -16,7 +16,12 @@ module WealthOs
         income_type = LABEL_TO_TYPE[transaction.investment_activity_label]
         return nil unless income_type
 
+        # Provider transaction identifiers are commonly scoped to an account,
+        # not guaranteed unique across a whole family. Include the canonical
+        # account id so two broker/bank accounts can legitimately receive the
+        # same provider external id without collapsing into one income lifecycle.
         event_key = [
+          entry.account_id,
           entry.source.presence || "manual",
           entry.external_id.presence || entry.id,
           income_type
