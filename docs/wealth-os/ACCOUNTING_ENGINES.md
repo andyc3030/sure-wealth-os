@@ -41,14 +41,14 @@ Only the current version of an economic event appears in lifecycle totals. When 
 
 ### Received provider transactions
 
-Booked investment transactions labelled:
+Only booked cash **inflows** carrying an explicit provider-supplied activity label of:
 
 - `Dividend`
 - `Interest`
 
 are projected into confirmed `RECEIVED` income events by `WealthOs::Income::ReceivedTransactionProjector`.
 
-Pending transactions are ignored.
+Generic name-based activity detection is not authoritative enough to create an accounting income event. Pending transactions and positive cash outflows are ignored. Each received event retains the booked Sure `Entry` as normalized evidence; a raw source record is retained as well when the connector supplied one.
 
 ### Gross income versus cash received
 
@@ -58,6 +58,8 @@ An event can store:
 - tax withheld;
 - fees;
 - actual cash amount.
+
+For a received event, recorded cash must reconcile to gross amount less withholding tax and fees. A received event must have either a booked Sure Entry or immutable raw-source evidence.
 
 Therefore:
 
@@ -69,7 +71,7 @@ This supports withholding-tax and fee reconciliation without redefining the unde
 
 ## 2. Liability payment accounting
 
-Sure's existing `Loan::AmortizationSchedule` remains the deterministic source for scheduled principal/interest decomposition.
+Sure's existing `Loan::AmortizationSchedule` remains the deterministic source for **scheduled** principal/interest decomposition. `WealthOs::Liabilities::ScheduleDecomposer` cannot create an actual/reconciled payment state.
 
 `LiabilityPayment` records:
 
@@ -111,6 +113,8 @@ Economic expense     750
 Principal expense      0
 ```
 
+When Sure has a configured loan-insurance schedule, scheduled decomposition reads the corresponding premium from `Loan::Insurance`. An actual/reconciled liability payment must carry a booked Entry or immutable raw-source evidence.
+
 This does **not** change Sure's household budgeting convention, where a loan payment may still be shown as a cash outflow. Wealth accounting and cash budgeting answer different questions.
 
 ## 3. Corporate actions
@@ -146,13 +150,13 @@ cash flow             = zero
 synthetic trade       = none
 ```
 
-Both forward and reverse holding reconstruction apply confirmed split actions at the correct date, before same-day trades.
+Both forward and reverse holding reconstruction apply confirmed split actions at the correct date, before same-day trades. A corporate action cannot be confirmed without an immutable `RawSourceRecord`; pending actions remain non-position-affecting.
 
 ### Other corporate-action types
 
 The other action types are first-class records for provenance/reconciliation, but they do **not** silently mutate positions in Phase 4.
 
-Merger, spin-off, rights, return-of-capital and fund-merger handlers require explicit deterministic transformation rules before being enabled. Until then, they should create a review/reconciliation exception rather than guessed accounting.
+Merger, spin-off, rights, return-of-capital and fund-merger handlers require explicit deterministic transformation rules before being enabled. Phase 4 stores those records but does not transform positions and does not fabricate an automatic reconciliation exception for them.
 
 ## 4. Money-weighted return
 
@@ -184,7 +188,9 @@ TWR = product(all subperiod growth factors) - 1
 
 Contributions and withdrawals therefore do not become investment performance.
 
-The service refuses invalid subperiods such as a non-positive beginning value rather than fabricating a percentage.
+The service refuses invalid subperiods such as a non-positive beginning value, missing numeric values, or duplicate segment dates rather than fabricating a percentage.
+
+Phase 4 does not yet derive TWR segments automatically from household balances. That integration requires authoritative external-flow segmentation and exact-date FX conversion, so it is intentionally deferred rather than inferred.
 
 ## 6. Performance attribution
 
@@ -315,6 +321,6 @@ This avoids forcing withholding tax into unexplained residual or mislabelling it
 
 ### Performance-attribution residual
 
-Capital return must be supplied independently by the deterministic valuation/performance engine. It is not solved as the balancing residual.
+Capital return must be supplied independently by the deterministic valuation/performance engine. It is not solved as the balancing residual, and nil attribution inputs are rejected rather than coerced to zero.
 
 This preserves `unexplained_change` as a real reconciliation signal. A non-zero unexplained value indicates that market movement, income, FX, fees, financing, tax, flows, or another component is missing or inconsistent.
