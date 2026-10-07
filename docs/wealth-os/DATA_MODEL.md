@@ -114,7 +114,9 @@ Key semantics:
 - states: forecast / accrued / declared / received;
 - one successor per prior version;
 - gross amount separate from cash amount, withholding tax and fees;
-- optional account/security/raw-source lineage.
+- optional account/security lineage;
+- optional booked Entry and raw-source lineage;
+- received state requires a booked Entry or immutable raw-source evidence.
 
 ### liability_payments
 
@@ -126,7 +128,9 @@ Economic decomposition of a debt payment:
 - insurance;
 - total cash payment;
 - scheduled/actual/reconciled state;
-- optional Entry and raw-source lineage.
+- optional Entry and raw-source lineage;
+- actual/reconciled state requires Entry or raw-source evidence;
+- schedule decomposition creates scheduled state only.
 
 Principal is balance-sheet movement, not financing expense.
 
@@ -134,7 +138,7 @@ Principal is balance-sheet movement, not financing expense.
 
 Authoritative corporate-action facts with source lineage.
 
-Split/reverse-split fields include exact numerator and denominator. Other action types are stored now but require explicit handlers before changing positions.
+Split/reverse-split fields include exact numerator and denominator. Confirmed actions require immutable raw-source evidence. Other action types are stored now but require explicit handlers before changing positions.
 
 ### performance calculation services
 
@@ -150,9 +154,12 @@ Split/reverse-split fields include exact numerator and denominator. Other action
 - one root `IncomeEvent` per family/event key;
 - one successor per income-event version;
 - accounting raw-source lineage must remain in-family and account-consistent;
+- received income must be backed by a booked Entry or raw-source evidence;
+- booked Entry evidence must belong to the income/liability account;
 - one scheduled `LiabilityPayment` per loan/date/source;
 - only confirmed split/reverse-split actions affect positions;
 - corporate actions default to pending;
+- confirmed corporate actions require immutable raw-source evidence;
 - duplicate confirmed split events for the same security/type/date are rejected;
 - confirmed corporate actions are immutable at the application layer;
 - gross income, withholding tax, fees and financing cost are separate accounting dimensions.
