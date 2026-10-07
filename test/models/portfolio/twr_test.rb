@@ -54,5 +54,4 @@ class Portfolio::TwrTest < ActiveSupport::TestCase
 
     assert_equal "segment date is required", error.message
   end
-
 end
