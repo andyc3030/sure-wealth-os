@@ -37,7 +37,8 @@ class LiabilityPayment < ApplicationRecord
     def loan_account_family_match
       return if loan.nil? || account.nil? || family.nil?
 
-      errors.add(:account, "must be the loan's account") unless loan.account_id == account_id
+      loan_account = loan.account
+      errors.add(:account, "must be the loan's account") unless loan_account&.id == account_id
       errors.add(:family, "must own the loan account") unless account.family_id == family_id
     end
 
