@@ -37,4 +37,29 @@ class SourceIdentityTest < ActiveSupport::TestCase
     assert_equal second_account, replacement.canonical
     assert_not first.update(confidence: 0.5)
   end
+  test "only one root mapping may exist for a source entity" do
+    family = families(:dylan_family)
+    account = accounts(:depository)
+
+    SourceIdentity.create!(
+      family: family,
+      source_system: "plaid",
+      entity_type: "account",
+      external_id: "root-unique",
+      canonical: account,
+      confidence: 1
+    )
+
+    duplicate = SourceIdentity.new(
+      family: family,
+      source_system: "plaid",
+      entity_type: "account",
+      external_id: "root-unique",
+      canonical: account,
+      confidence: 1
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:external_id], "already has a root identity mapping"
+  end
 end
