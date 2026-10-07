@@ -18,6 +18,9 @@ class LiabilityPayment < ApplicationRecord
   validate :loan_account_family_match
   validate :components_equal_total
 
+  before_update :prevent_mutation
+  before_destroy :prevent_mutation
+
   def financing_cost
     interest_amount.to_d + fee_amount.to_d
   end
@@ -37,6 +40,11 @@ class LiabilityPayment < ApplicationRecord
   end
 
   private
+
+    def prevent_mutation
+      errors.add(:base, "liability payment decompositions are append-only")
+      throw(:abort)
+    end
 
     def loan_account_family_match
       return if loan.nil? || account.nil? || family.nil?
