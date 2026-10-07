@@ -88,6 +88,26 @@ class CreateWealthOsResearchAdviceFoundation < ActiveRecord::Migration[8.1]
               unique: true,
               name: "idx_research_evidences_unique"
 
+    create_table :research_theme_assessments, id: :uuid do |t|
+      t.references :research_run, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
+      t.string :theme, null: false
+      t.text :evidence_summary, null: false
+      t.text :uncertainty_summary, null: false
+      t.jsonb :falsification_tests, null: false, default: []
+      t.jsonb :structural_bottlenecks, null: false, default: []
+      t.jsonb :highest_quality_exposures, null: false, default: []
+      t.jsonb :narrative_only_beneficiaries, null: false, default: []
+      t.text :existing_portfolio_exposure, null: false
+      t.jsonb :missing_exposures, null: false, default: []
+      t.string :status, null: false, default: "draft"
+      t.timestamps
+    end
+
+    add_index :research_theme_assessments,
+              [ :research_run_id, :theme ],
+              unique: true,
+              name: "idx_research_theme_assessments_unique"
+
     create_table :investment_recommendations, id: :uuid do |t|
       t.references :research_run, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.references :security, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
@@ -110,6 +130,9 @@ class CreateWealthOsResearchAdviceFoundation < ActiveRecord::Migration[8.1]
       t.text :near_term_catalyst
       t.jsonb :principal_risks, null: false, default: []
       t.text :correlation_context, null: false
+      t.string :portfolio_status, null: false, default: "unknown"
+      t.decimal :current_weight_pct, precision: 8, scale: 4
+      t.decimal :proposed_weight_pct, precision: 8, scale: 4
       t.text :competitive_position, null: false
       t.text :capital_intensity, null: false
       t.text :cash_generation_quality, null: false
@@ -164,6 +187,14 @@ class CreateWealthOsResearchAdviceFoundation < ActiveRecord::Migration[8.1]
     add_check_constraint :investment_recommendations,
                          "confidence IS NULL OR (confidence >= 0 AND confidence <= 1)",
                          name: "chk_investment_recommendations_confidence"
+
+    add_check_constraint :investment_recommendations,
+                         "current_weight_pct IS NULL OR (current_weight_pct >= 0 AND current_weight_pct <= 100)",
+                         name: "chk_investment_recommendations_current_weight"
+
+    add_check_constraint :investment_recommendations,
+                         "proposed_weight_pct IS NULL OR (proposed_weight_pct >= 0 AND proposed_weight_pct <= 100)",
+                         name: "chk_investment_recommendations_proposed_weight"
 
     add_check_constraint :investment_recommendations,
                          "preferred_entry_low IS NULL OR preferred_entry_high IS NULL OR preferred_entry_low <= preferred_entry_high",
