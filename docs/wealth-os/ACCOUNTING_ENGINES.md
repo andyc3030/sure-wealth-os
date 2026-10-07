@@ -92,7 +92,10 @@ Principal:
   net-worth cost = 0
 
 Financing cost:
-  Interest + Fees + Insurance
+  Interest + Fees
+
+Insurance cost:
+  Insurance
 ```
 
 Canonical test:
@@ -195,6 +198,7 @@ Closing value
 + Income
 - Fees
 - Financing cost
+- Insurance cost
 + FX effect
 + Capital return
 + Unexplained residual
@@ -208,6 +212,7 @@ This separates:
 - income;
 - fees;
 - financing cost;
+- insurance cost;
 - FX effect;
 - capital return.
 
@@ -257,6 +262,8 @@ Phase 4 is ready only when:
 ### Income lifecycle identity
 
 A family may have only one lifecycle root for a given `event_key`.
+
+Booked provider income keys are account-scoped as well as source/external-id scoped, because provider transaction IDs are not assumed to be globally unique across a family.
 
 That root can then be superseded through the append-only state chain. This prevents two independent current chains from representing the same economic income event.
 
