@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class CorporateAction < ApplicationRecord
+  include SourceTraceable
   ACTION_TYPES = %w[
     stock_split reverse_split merger spinoff rights special_dividend
     return_of_capital symbol_change fund_merge
@@ -11,7 +12,6 @@ class CorporateAction < ApplicationRecord
   belongs_to :family
   belongs_to :security
   belongs_to :successor_security, class_name: "Security", optional: true
-  belongs_to :raw_source_record, optional: true
 
   validates :action_type, inclusion: { in: ACTION_TYPES }
   validates :status, inclusion: { in: STATUSES }
@@ -19,6 +19,9 @@ class CorporateAction < ApplicationRecord
   validates :cash_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :currency, length: { is: 3 }, allow_nil: true
   validate :split_ratio_present
+
+  before_update :prevent_confirmed_mutation
+  before_destroy :prevent_confirmed_mutation
 
   scope :confirmed, -> { where(status: "confirmed") }
   scope :position_affecting, -> { confirmed.where(action_type: SPLIT_TYPES) }
@@ -35,6 +38,13 @@ class CorporateAction < ApplicationRecord
   end
 
   private
+
+    def prevent_confirmed_mutation
+      return unless status_in_database == "confirmed"
+
+      errors.add(:base, "confirmed corporate actions are immutable")
+      throw(:abort)
+    end
 
     def split_ratio_present
       return unless split?
