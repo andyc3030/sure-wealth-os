@@ -2930,6 +2930,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.date "accrual_start_date"
     t.uuid "account_id"
     t.string "canonical_key", limit: 255, null: false
+    t.decimal "cash_received_amount", precision: 19, scale: 4
     t.string "confidence", default: "unknown", null: false
     t.datetime "created_at", null: false
     t.string "currency", limit: 3, null: false
@@ -2957,7 +2958,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.index ["raw_source_record_id"], name: "index_income_events_on_raw_source_record_id"
     t.index ["security_id"], name: "index_income_events_on_security_id"
     t.check_constraint "confidence::text = ANY (ARRAY['confirmed'::character varying, 'high'::character varying, 'estimated'::character varying, 'low'::character varying, 'unknown'::character varying]::text[])", name: "chk_income_events_confidence"
-    t.check_constraint "gross_amount >= 0::numeric AND withholding_tax_amount >= 0::numeric AND fee_amount >= 0::numeric", name: "chk_income_events_nonnegative_amounts"
+    t.check_constraint "gross_amount >= 0::numeric AND withholding_tax_amount >= 0::numeric AND fee_amount >= 0::numeric AND (cash_received_amount IS NULL OR cash_received_amount >= 0::numeric)", name: "chk_income_events_nonnegative_amounts"
     t.check_constraint "income_type::text = ANY (ARRAY['dividend'::character varying, 'interest'::character varying, 'coupon'::character varying, 'distribution'::character varying, 'rent'::character varying, 'salary'::character varying, 'pension'::character varying, 'annuity'::character varying, 'business_income'::character varying, 'other'::character varying]::text[])", name: "chk_income_events_type"
     t.check_constraint "state::text = ANY (ARRAY['forecast'::character varying, 'accrued'::character varying, 'declared'::character varying, 'received'::character varying]::text[])", name: "chk_income_events_state"
   end
