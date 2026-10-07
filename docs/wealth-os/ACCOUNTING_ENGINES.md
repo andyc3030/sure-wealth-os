@@ -50,12 +50,15 @@ Each event keeps:
 - withholding tax;
 - event-level fee;
 - net amount = gross − withholding tax − fee;
+- actual cash received, stored separately from gross/economic income;
 - native currency;
 - expected/accrual/declaration/payable/received dates;
 - confidence;
 - source/provenance.
 
 No silent FX conversion occurs in `StateSummary`; currencies remain separate until an explicit FX policy is applied.
+
+Booked provider transactions labelled Dividend/Interest are projected idempotently into RECEIVED income. When a provider supplies only booked cash and not gross/tax character, the cash is stored explicitly and the gross basis is labelled in metadata rather than invented.
 
 ### Auditability
 
@@ -113,7 +116,9 @@ Financing cost = 750
 - return of capital;
 - fund reorganization.
 
-At this phase corporate-action records are immutable source/accounting facts. No automatic holding mutation is enabled.
+Corporate-action economics are immutable; lifecycle status changes are allowed only through audited `transition_to!` transitions.
+
+Only validated/applied/reconciled split and reverse-split actions affect reconstructed holdings in Phase 4. They adjust quantities and per-unit basis before same-day trades without fabricating buy/sell transactions. Unsupported corporate-action types remain recorded but non-mutating.
 
 ### Split math
 
@@ -126,7 +131,7 @@ new unit cost = old unit cost × denominator / numerator
 
 Therefore total cost is preserved.
 
-This service is calculation-only. A later application/reconciliation workflow must verify the resulting provider holdings before changing canonical positions.
+The standalone split service remains calculation-only, while the holding forward/reverse calculators consume only validated position-affecting split actions. Provider reconciliation is still required after reconstruction.
 
 ## 4. Investment performance
 
@@ -247,8 +252,8 @@ A non-zero material residual is a reconciliation issue, not an amount for the AI
 
 This phase does **not** yet:
 
-- automatically create income events from every provider;
-- automatically apply corporate actions to holdings;
+- automatically create every forecast/accrual/declaration from every provider;
+- apply unsupported corporate-action types such as mergers/spin-offs/rights automatically;
 - perform tax filing/accounting;
 - convert mixed-currency income without an explicit FX policy;
 - replace provider/broker source reconciliation;
