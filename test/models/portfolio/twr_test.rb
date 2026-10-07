@@ -26,4 +26,22 @@ class Portfolio::TwrTest < ActiveSupport::TestCase
 
     assert_raises(Portfolio::Twr::InvalidSegment) { twr.rate }
   end
+  test "rejects duplicate segment dates because ordering would be ambiguous" do
+    assert_raises(Portfolio::Twr::InvalidSegment) do
+      Portfolio::Twr.new([
+        { date: Date.current, begin_value: 100, end_value: 110, external_flow: 0 },
+        { date: Date.current, begin_value: 110, end_value: 120, external_flow: 0 }
+      ])
+    end
+  end
+
+  test "rejects nil segment values instead of coercing them to zero" do
+    twr = Portfolio::Twr.new([
+      { date: Date.current, begin_value: 100, end_value: 110, external_flow: nil }
+    ])
+
+    error = assert_raises(Portfolio::Twr::InvalidSegment) { twr.rate }
+    assert_equal "external_flow is required", error.message
+  end
+
 end
