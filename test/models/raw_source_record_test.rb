@@ -81,4 +81,18 @@ class RawSourceRecordTest < ActiveSupport::TestCase
     assert_not first.destroy
     assert RawSourceRecord.exists?(first.id)
   end
+  test "rejects credential-like keys anywhere in raw payload or metadata" do
+    record = RawSourceRecord.new(
+      family: families(:dylan_family),
+      source_system: "test",
+      record_type: "provider_payload",
+      source_key: "secret-test",
+      observed_at: Time.current,
+      payload: { "account" => { "access_token" => "must-not-store" } },
+      metadata: { "safe" => true }
+    )
+
+    assert_not record.valid?
+    assert_includes record.errors[:base].join(" "), "access_token"
+  end
 end
