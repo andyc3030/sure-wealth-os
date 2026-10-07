@@ -14,17 +14,24 @@ class Portfolio::Twr
     @segments = Array(segments).map do |segment|
       segment.is_a?(Segment) ? segment : Segment.new(**segment)
     end.sort_by(&:date).freeze
+
+    raise InvalidSegment, "segment date is required" if @segments.any? { |segment| segment.date.nil? }
+
+    dates = @segments.map(&:date)
+    if dates.uniq.length != dates.length
+      raise InvalidSegment, "multiple TWR segments on the same date are ambiguous"
+    end
   end
 
   def rate
     return nil if segments.empty?
 
     growth = segments.reduce(BigDecimal("1")) do |factor, segment|
-      begin_value = segment.begin_value.to_d
+      begin_value = decimal!(segment.begin_value, "begin_value")
       raise InvalidSegment, "begin_value must be positive" unless begin_value.positive?
 
-      end_value = segment.end_value.to_d
-      external_flow = segment.external_flow.to_d
+      end_value = decimal!(segment.end_value, "end_value")
+      external_flow = decimal!(segment.external_flow, "external_flow")
       subperiod = (end_value - external_flow) / begin_value
       raise InvalidSegment, "subperiod growth factor must be non-negative" if subperiod.negative?
 
@@ -38,4 +45,15 @@ class Portfolio::Twr
     value = rate
     value && value * 100
   end
+
+  private
+
+    def decimal!(value, name)
+      raise InvalidSegment, "#{name} is required" if value.nil?
+
+      decimal = value.to_d
+      raise InvalidSegment, "#{name} must be finite" unless decimal.finite?
+
+      decimal
+    end
 end
