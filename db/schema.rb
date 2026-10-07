@@ -701,7 +701,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
 
   create_table "entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id", null: false
-    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.decimal "amount", precision: 19, scale: 4
     t.datetime "created_at", null: false
     t.string "currency"
     t.date "date"
@@ -3020,7 +3020,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.string "event_key", limit: 255, null: false
     t.date "ex_date"
     t.uuid "family_id", null: false
-    t.decimal "fees", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "fees", precision: 19, scale: 4
     t.string "income_type", null: false
     t.jsonb "metadata", default: {}, null: false
     t.string "method"
@@ -3030,7 +3030,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.string "source_system"
     t.string "state", null: false
     t.uuid "supersedes_id"
-    t.decimal "tax_withheld", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "tax_withheld", precision: 19, scale: 4
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_income_events_on_account_id"
     t.index ["entry_id"], name: "index_income_events_on_entry_id"
@@ -3042,10 +3042,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.index ["security_id"], name: "index_income_events_on_security_id"
     t.index ["supersedes_id"], name: "idx_income_events_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
     t.index ["supersedes_id"], name: "index_income_events_on_supersedes_id"
-    t.check_constraint "amount >= 0::numeric", name: "chk_income_events_amount_non_negative"
+    t.check_constraint "amount IS NULL OR amount >= 0::numeric", name: "chk_income_events_amount_non_negative"
     t.check_constraint "cash_amount IS NULL OR cash_amount >= 0::numeric", name: "chk_income_events_cash_non_negative"
-    t.check_constraint "fees >= 0::numeric", name: "chk_income_events_fees_non_negative"
-    t.check_constraint "tax_withheld >= 0::numeric", name: "chk_income_events_tax_non_negative"
+    t.check_constraint "fees IS NULL OR fees >= 0::numeric", name: "chk_income_events_fees_non_negative"
+    t.check_constraint "tax_withheld IS NULL OR tax_withheld >= 0::numeric", name: "chk_income_events_tax_non_negative"
   end
 
   create_table "liability_payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
