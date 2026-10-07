@@ -2990,7 +2990,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.decimal "ratio_numerator", precision: 34, scale: 18
     t.uuid "security_id", null: false
     t.string "source_system"
-    t.string "status", default: "confirmed", null: false
+    t.string "status", default: "pending", null: false
     t.uuid "successor_security_id"
     t.datetime "updated_at", null: false
     t.index ["family_id", "security_id", "effective_date"], name: "idx_corporate_actions_position_math"
