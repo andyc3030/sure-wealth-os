@@ -209,3 +209,20 @@ Phase 3 is complete only when:
 - reconciliation events are append-only and rerun-safe;
 - cross-family lineage is rejected;
 - unit/integration/system CI is green.
+
+
+### Credential exclusion
+
+Raw financial facts may contain sensitive financial data, but they must never contain connector credentials.
+
+`RawSourceRecord` rejects credential-like keys recursively in payloads and metadata, including access/refresh/bearer tokens, client secrets, API keys/secrets, passwords, authorization fields and private keys.
+
+This is a defense-in-depth validation; connector code must still avoid sending credentials into the raw-ingestion API in the first place.
+
+### Entity-resolution chain integrity
+
+A source entity has exactly one immutable root mapping and each identity version may have at most one successor. Database uniqueness backs the application-level resolver so concurrent resolution cannot fork the identity history.
+
+### Conflict idempotency
+
+A disagreement between the same two immutable raw records for the same field is one conflict record for its lifetime. Once resolved, rerunning reconciliation returns that same resolved conflict rather than opening a duplicate.
