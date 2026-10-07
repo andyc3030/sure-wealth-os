@@ -3,7 +3,7 @@
 module WealthOs
   module Income
     class StateSummary
-      Result = Data.define(:currency, :forecast, :accrued, :declared, :received) do
+      Result = Data.define(:currency, :forecast, :accrued, :declared, :received, :received_cash) do
         def total
           forecast + accrued + declared + received
         end
@@ -28,7 +28,8 @@ module WealthOs
             values.fetch("forecast"),
             values.fetch("accrued"),
             values.fetch("declared"),
-            values.fetch("received")
+            values.fetch("received"),
+            currency_events.select(&:received?).sum(BigDecimal("0"), &:received_cash)
           )
         end
       end
