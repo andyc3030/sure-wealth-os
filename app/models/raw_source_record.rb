@@ -3,6 +3,10 @@
 require "digest"
 
 class RawSourceRecord < ApplicationRecord
+  FORBIDDEN_SECRET_KEYS = %w[
+    access_token refresh_token bearer_token client_secret api_key api_secret
+    password authorization private_key
+  ].freeze
   belongs_to :family
   belongs_to :account, optional: true
   belongs_to :account_provider, optional: true
@@ -12,6 +16,7 @@ class RawSourceRecord < ApplicationRecord
 
   validates :source_system, :record_type, :source_key, :observed_at, :payload_sha256, presence: true
   validates :schema_version, numericality: { only_integer: true, greater_than: 0 }
+  validate :payload_and_metadata_exclude_credentials
 
   before_validation :normalize_payload_and_digest, on: :create
   before_update :prevent_mutation
@@ -79,6 +84,28 @@ class RawSourceRecord < ApplicationRecord
   end
 
   private
+
+    def payload_and_metadata_exclude_credentials
+      forbidden = forbidden_keys_in(payload || {}) + forbidden_keys_in(metadata || {})
+      return if forbidden.empty?
+
+      errors.add(:base, "raw source records must not contain credential-like keys: #{forbidden.uniq.sort.join(", ")}")
+    end
+
+    def forbidden_keys_in(value)
+      case value
+      when Hash
+        value.each_with_object([]) do |(key, nested), found|
+          normalized = key.to_s.downcase.tr("-", "_")
+          found << normalized if FORBIDDEN_SECRET_KEYS.include?(normalized)
+          found.concat(forbidden_keys_in(nested))
+        end
+      when Array
+        value.flat_map { |item| forbidden_keys_in(item) }
+      else
+        []
+      end
+    end
 
     def normalize_payload_and_digest
       self.payload = self.class.canonicalize(payload || {})
