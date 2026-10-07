@@ -19,6 +19,7 @@ class CorporateAction < ApplicationRecord
   validates :cash_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :currency, length: { is: 3 }, allow_nil: true
   validate :split_ratio_present
+  validate :confirmed_action_has_source_evidence
 
   before_update :prevent_confirmed_mutation
   before_destroy :prevent_confirmed_mutation
@@ -44,6 +45,13 @@ class CorporateAction < ApplicationRecord
 
       errors.add(:base, "confirmed corporate actions are immutable")
       throw(:abort)
+    end
+
+    def confirmed_action_has_source_evidence
+      return unless status == "confirmed"
+      return if raw_source_record.present?
+
+      errors.add(:raw_source_record, "is required before a corporate action can be confirmed")
     end
 
     def split_ratio_present
