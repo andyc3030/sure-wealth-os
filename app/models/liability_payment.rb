@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class LiabilityPayment < ApplicationRecord
+  include SourceTraceable
   STATES = %w[scheduled actual reconciled].freeze
   COMPONENT_TOLERANCE = BigDecimal("0.01")
 
@@ -8,7 +9,6 @@ class LiabilityPayment < ApplicationRecord
   belongs_to :account
   belongs_to :loan
   belongs_to :entry, optional: true
-  belongs_to :raw_source_record, optional: true
 
   validates :payment_date, :state, :total_amount, :currency, presence: true
   validates :state, inclusion: { in: STATES }
