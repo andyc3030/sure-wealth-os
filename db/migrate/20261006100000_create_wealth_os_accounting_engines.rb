@@ -79,7 +79,7 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
       t.references :raw_source_record, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
 
       t.string :action_type, null: false
-      t.string :status, null: false, default: "confirmed"
+      t.string :status, null: false, default: "pending"
       t.date :effective_date, null: false
       t.decimal :ratio_numerator, precision: 34, scale: 18
       t.decimal :ratio_denominator, precision: 34, scale: 18
