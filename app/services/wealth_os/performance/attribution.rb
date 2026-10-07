@@ -5,12 +5,12 @@ module WealthOs
     class Attribution
       Result = Data.define(
         :opening_value, :closing_value, :contributions, :withdrawals,
-        :income, :tax_withheld, :fees, :financing_cost, :fx_effect, :capital_return,
+        :income, :tax_withheld, :fees, :financing_cost, :insurance_cost, :fx_effect, :capital_return,
         :explained_change, :unexplained_change
       )
 
       def self.call(opening_value:, closing_value:, capital_return:, contributions: 0, withdrawals: 0,
-                    income: 0, tax_withheld: 0, fees: 0, financing_cost: 0, fx_effect: 0)
+                    income: 0, tax_withheld: 0, fees: 0, financing_cost: 0, insurance_cost: 0, fx_effect: 0)
         opening = opening_value.to_d
         closing = closing_value.to_d
         contributions = contributions.to_d
@@ -19,6 +19,7 @@ module WealthOs
         tax = tax_withheld.to_d
         fees = fees.to_d
         financing = financing_cost.to_d
+        insurance = insurance_cost.to_d
         fx = fx_effect.to_d
 
         capital = capital_return.to_d
@@ -26,12 +27,12 @@ module WealthOs
         # Capital return is supplied by the deterministic valuation/performance
         # engine rather than manufactured as the balancing residual. That keeps
         # unexplained_change meaningful as a reconciliation/data-quality signal.
-        explained = contributions - withdrawals + income - tax - fees - financing + fx + capital
+        explained = contributions - withdrawals + income - tax - fees - financing - insurance + fx + capital
         unexplained = (closing - opening) - explained
 
         Result.new(
           opening, closing, contributions, withdrawals,
-          income, tax, fees, financing, fx, capital,
+          income, tax, fees, financing, insurance, fx, capital,
           explained, unexplained
         )
       end
