@@ -140,5 +140,4 @@ class WealthOs::Income::ReceivedTransactionProjectorTest < ActiveSupport::TestCa
     assert_equal BigDecimal("85"), event.cash_amount
     assert_equal "booked_transaction_cash_only", event.method
   end
-
 end
