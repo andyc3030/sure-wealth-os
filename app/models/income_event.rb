@@ -5,6 +5,7 @@ class IncomeEvent < ApplicationRecord
   STATES = %w[forecast accrued declared received].freeze
   TYPES = %w[dividend interest coupon distribution rent other].freeze
   CONFIDENCE_LEVELS = %w[confirmed high estimated low unknown].freeze
+  ACCRUABLE_TYPES = %w[interest coupon rent other].freeze
 
   TRANSITIONS = {
     "forecast" => %w[forecast accrued declared received],
@@ -35,6 +36,7 @@ class IncomeEvent < ApplicationRecord
             if: -> { supersedes_id.nil? }
   validate :superseded_event_matches_identity
   validate :state_transition_is_allowed
+  validate :accrued_state_matches_income_type
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
@@ -99,6 +101,13 @@ class IncomeEvent < ApplicationRecord
       errors.add(:supersedes, "must belong to the same family") if supersedes.family_id != family_id
       errors.add(:event_key, "must match the superseded event") if supersedes.event_key != event_key
       errors.add(:income_type, "must match the superseded event") if supersedes.income_type != income_type
+    end
+
+    def accrued_state_matches_income_type
+      return unless state == "accrued"
+      return if ACCRUABLE_TYPES.include?(income_type)
+
+      errors.add(:state, "#{income_type} income must remain forecast until it is declared or received")
     end
 
     def state_transition_is_allowed
