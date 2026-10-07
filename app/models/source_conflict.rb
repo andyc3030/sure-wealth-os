@@ -25,8 +25,7 @@ class SourceConflict < ApplicationRecord
         family: family,
         source_record_a: first,
         source_record_b: second,
-        field_name: field_name,
-        status: "open"
+        field_name: field_name
       ) || create!(
         family: family,
         account: account,
@@ -40,6 +39,13 @@ class SourceConflict < ApplicationRecord
         impact_amount: impact_amount,
         currency: currency,
         detected_at: detected_at
+      )
+    rescue ActiveRecord::RecordNotUnique
+      find_by!(
+        family: family,
+        source_record_a: first,
+        source_record_b: second,
+        field_name: field_name
       )
     end
   end
