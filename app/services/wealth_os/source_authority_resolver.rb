@@ -24,6 +24,9 @@ module WealthOs
       priorities = rules.index_by(&:source_system)
       candidates = records.filter_map do |record|
         next unless record.family_id == @family.id
+        next unless record.record_type == @record_type
+        next if @account && record.account_id != @account.id
+
         rule = priorities[record.source_system]
         next unless rule
 
