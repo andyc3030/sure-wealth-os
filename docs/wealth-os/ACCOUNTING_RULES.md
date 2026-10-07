@@ -9,7 +9,7 @@ These rules are invariants for deterministic financial calculations.
 - Transition history is append-only.
 - Never count the same economic income simultaneously in two current-state totals.
 - Undeclared ordinary dividends are forecast, not accrued.
-- Preserve gross income, withholding tax and fees separately.
+- Preserve gross income, withholding tax, fees and actual cash received separately.
 - Preserve native currency; FX conversion must name its rate/source/time.
 
 ## Debt
@@ -27,7 +27,9 @@ These rules are invariants for deterministic financial calculations.
 - Corporate actions require a source fact.
 - Split/reverse-split quantity and unit-cost adjustment must preserve total cost before cash-in-lieu effects.
 - Return of capital is not automatically ordinary income; its accounting/tax character requires authoritative source data.
-- No Phase 4 service mutates holdings automatically.
+- Only validated/applied/reconciled split and reverse-split actions may adjust reconstructed holdings.
+- Splits never fabricate synthetic trades or cash flows.
+- Corporate-action status changes are audited; direct mutation is rejected.
 
 ## Performance
 
