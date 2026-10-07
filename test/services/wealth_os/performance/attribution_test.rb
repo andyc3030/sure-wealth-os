@@ -52,5 +52,4 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
 
     assert_equal "nil attribution components: capital_return", error.message
   end
-
 end
