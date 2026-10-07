@@ -9,6 +9,10 @@ module WealthOs
                  currency: nil, dedupe_key: nil, details: {}, occurred_at: Time.current)
           expected_decimal = expected.to_d
           actual_decimal = actual.to_d
+          raise ArgumentError, "tolerance must be non-negative" if tolerance.to_d.negative?
+          if materiality_threshold.present? && materiality_threshold.to_d < tolerance.to_d
+            raise ArgumentError, "materiality threshold must be greater than or equal to tolerance"
+          end
           difference = actual_decimal - expected_decimal
           absolute_difference = difference.abs
           tolerance_decimal = tolerance.to_d
