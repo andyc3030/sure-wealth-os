@@ -17,6 +17,7 @@ class InvestmentRecommendation < ApplicationRecord
             numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 5 },
             allow_nil: true
   validate :new_capital_recommendation_has_full_investment_case
+  validate :assessment_matches_family
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
@@ -42,6 +43,12 @@ class InvestmentRecommendation < ApplicationRecord
       if reference_price.blank? || price_currency.blank? || price_as_of.blank? || price_source.blank?
         errors.add(:reference_price, "requires sourced, timestamped current price context")
       end
+    end
+
+    def assessment_matches_family
+      return if research_assessment.nil? || research_assessment.family_id == family_id
+
+      errors.add(:research_assessment, "must belong to the same family")
     end
 
     def prevent_mutation
