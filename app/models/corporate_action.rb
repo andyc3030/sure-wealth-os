@@ -7,6 +7,7 @@ class CorporateAction < ApplicationRecord
   ].freeze
   STATUSES = %w[observed validated applied reconciled ignored].freeze
   RATIO_ACTIONS = %w[split reverse_split].freeze
+  POSITION_AFFECTING_STATUSES = %w[validated applied reconciled].freeze
 
   belongs_to :family
   belongs_to :account, optional: true
@@ -26,6 +27,17 @@ class CorporateAction < ApplicationRecord
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
+
+  scope :position_affecting, -> {
+    where(action_type: RATIO_ACTIONS, status: POSITION_AFFECTING_STATUSES)
+  }
+
+  def ratio
+    return nil unless RATIO_ACTIONS.include?(action_type)
+    return nil if ratio_numerator.blank? || ratio_denominator.blank?
+
+    ratio_numerator.to_d / ratio_denominator.to_d
+  end
 
   private
 
