@@ -101,6 +101,21 @@ class CreateWealthOsAccountingFoundation < ActiveRecord::Migration[8.1]
     add_index :corporate_actions, [ :security_id, :effective_date, :action_type ],
               name: "idx_corporate_actions_security_date"
 
+    create_table :corporate_action_transitions, id: :uuid do |t|
+      t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
+      t.references :corporate_action, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
+      t.references :raw_source_record, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
+      t.string :from_status
+      t.string :to_status, null: false
+      t.datetime :occurred_at, null: false
+      t.string :reason
+      t.jsonb :snapshot, null: false, default: {}
+      t.timestamps
+    end
+
+    add_index :corporate_action_transitions, [ :corporate_action_id, :occurred_at ],
+              name: "idx_corporate_action_transitions_timeline"
+
     add_check_constraint :income_events,
                          "gross_amount >= 0 AND withholding_tax_amount >= 0 AND fee_amount >= 0 AND (cash_received_amount IS NULL OR cash_received_amount >= 0)",
                          name: "chk_income_events_nonnegative_amounts"
