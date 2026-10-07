@@ -59,7 +59,11 @@ An event can store:
 - fees;
 - actual cash amount.
 
-For a received event, recorded cash must reconcile to gross amount less withholding tax and fees. A received event must have either a booked Sure Entry or immutable raw-source evidence.
+For a received event, cash amount is mandatory. Gross amount, withholding tax and fees remain nullable when the only authoritative fact is the booked cash credit. The provider cash projector therefore records confirmed cash but does **not** infer gross income or assume withholding/fees are zero.
+
+When gross amount and all deductions are known, recorded cash must reconcile to gross amount less withholding tax and fees. When only some deductions are known, cash cannot exceed gross less those known deductions. A received event must have either a booked Sure Entry or immutable raw-source evidence.
+
+`LifecycleSummary` reports confirmed received cash separately and exposes `received_gross_unknown_cash` so downstream reporting can distinguish known cash from known gross economic income.
 
 Therefore:
 
@@ -269,7 +273,7 @@ Phase 4 is ready only when:
 
 A family may have only one lifecycle root for a given `event_key`.
 
-Booked provider income keys are account-scoped as well as source/external-id scoped, because provider transaction IDs are not assumed to be globally unique across a family.
+Booked provider income is keyed to the canonical Sure `Entry` id plus income type. That identity survives provider external-id changes and pending→posted reconciliation without creating a second received-income lifecycle.
 
 That root can then be superseded through the append-only state chain. This prevents two independent current chains from representing the same economic income event.
 
