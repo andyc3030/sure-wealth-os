@@ -31,6 +31,42 @@ class WealthOs::Income::ReceivedTransactionProjectorTest < ActiveSupport::TestCa
     assert_equal 1, IncomeEvent.where(family: account.family, event_key: first.event_key).count
   end
 
+  test "same provider external id in different accounts creates distinct income lifecycles" do
+    family = families(:empty)
+    first_account = family.accounts.create!(
+      name: "Broker One",
+      balance: 1000,
+      cash_balance: 100,
+      currency: "USD",
+      accountable: Investment.new
+    )
+    second_account = family.accounts.create!(
+      name: "Broker Two",
+      balance: 1000,
+      cash_balance: 100,
+      currency: "USD",
+      accountable: Investment.new
+    )
+
+    entries = [ first_account, second_account ].map do |account|
+      account.entries.create!(
+        name: "Dividend",
+        amount: -50,
+        currency: "USD",
+        date: Date.current,
+        external_id: "shared-provider-id",
+        source: "test_provider",
+        entryable: Transaction.new(investment_activity_label: "Dividend")
+      )
+    end
+
+    projected = entries.map { |entry| WealthOs::Income::ReceivedTransactionProjector.call(entry) }
+
+    assert_equal 2, projected.map(&:id).uniq.size
+    assert_equal [ first_account.id, second_account.id ].sort, projected.map(&:account_id).sort
+    assert_equal 2, IncomeEvent.where(family: family, state: "received").where(event_key: projected.map(&:event_key)).count
+  end
+
   test "ignores non-income activity" do
     account = families(:empty).accounts.create!(
       name: "Broker",
