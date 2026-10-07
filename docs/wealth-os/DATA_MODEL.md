@@ -143,3 +143,16 @@ Split/reverse-split fields include exact numerator and denominator. Other action
 `Portfolio::Twr` — Phase 4 time-weighted return.
 
 `WealthOs::Performance::Attribution` — deterministic change bridge.
+
+
+### Phase 4 accounting integrity constraints
+
+- one root `IncomeEvent` per family/event key;
+- one successor per income-event version;
+- accounting raw-source lineage must remain in-family and account-consistent;
+- one scheduled `LiabilityPayment` per loan/date/source;
+- only confirmed split/reverse-split actions affect positions;
+- corporate actions default to pending;
+- duplicate confirmed split events for the same security/type/date are rejected;
+- confirmed corporate actions are immutable at the application layer;
+- gross income, withholding tax, fees and financing cost are separate accounting dimensions.
