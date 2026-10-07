@@ -114,6 +114,8 @@ Key semantics:
 - states: forecast / accrued / declared / received;
 - one successor per prior version;
 - gross amount separate from cash amount, withholding tax and fees;
+- gross amount / withholding / fees may remain null for cash-only received evidence;
+- pre-receipt states require an economic amount;
 - optional account/security lineage;
 - optional booked Entry and raw-source lineage;
 - received state requires a booked Entry or immutable raw-source evidence.
