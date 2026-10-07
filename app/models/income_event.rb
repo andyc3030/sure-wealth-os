@@ -15,8 +15,8 @@ class IncomeEvent < ApplicationRecord
     "received" => %w[received]
   }.freeze
 
-  TRACKED_FIELDS = %w[
-    state gross_amount withholding_tax_amount fee_amount currency expected_on
+  REVISION_FIELDS = %w[
+    gross_amount withholding_tax_amount fee_amount currency expected_on
     accrual_start_date accrual_end_date declared_on payable_on received_on
     confidence source_system source_key metadata raw_source_record_id
   ].freeze
@@ -26,7 +26,7 @@ class IncomeEvent < ApplicationRecord
   belongs_to :security, optional: true
   belongs_to :raw_source_record, optional: true
 
-  has_many :transitions, class_name: "IncomeEventTransition", dependent: :destroy
+  has_many :transitions, class_name: "IncomeEventTransition", dependent: :delete_all
 
   validates :canonical_key, :state, :income_type, :currency, presence: true
   validates :canonical_key, uniqueness: { scope: :family_id }
@@ -50,6 +50,10 @@ class IncomeEvent < ApplicationRecord
     target = new_state.to_s
     raise ArgumentError, "invalid income state: #{target}" unless STATES.include?(target)
     raise ArgumentError, "transition #{state} -> #{target} is not allowed" unless ALLOWED_TRANSITIONS.fetch(state).include?(target)
+
+    attributes = attributes.to_h.stringify_keys
+    unknown = attributes.keys - REVISION_FIELDS
+    raise ArgumentError, "unsupported income revision fields: #{unknown.join(", ")}" if unknown.any?
 
     self.class.transaction do
       previous_state = state
@@ -114,11 +118,9 @@ class IncomeEvent < ApplicationRecord
 
     def prevent_untracked_mutation
       return if @transitioning
+      return if changes_to_save.empty?
 
-      changed = changes_to_save.keys & TRACKED_FIELDS
-      return if changed.empty?
-
-      errors.add(:base, "income accounting fields must be changed through transition_to!")
+      errors.add(:base, "income events must be changed through transition_to!")
       throw(:abort)
     end
 
