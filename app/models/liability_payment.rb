@@ -19,7 +19,11 @@ class LiabilityPayment < ApplicationRecord
   validate :components_equal_total
 
   def financing_cost
-    interest_amount.to_d + fee_amount.to_d + insurance_amount.to_d
+    interest_amount.to_d + fee_amount.to_d
+  end
+
+  def insurance_cost
+    insurance_amount.to_d
   end
 
   # Principal repayment reduces cash and debt by the same amount. It is not an
@@ -29,7 +33,7 @@ class LiabilityPayment < ApplicationRecord
   end
 
   def net_worth_cost
-    financing_cost
+    financing_cost + insurance_cost
   end
 
   private
