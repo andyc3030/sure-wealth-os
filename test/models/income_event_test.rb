@@ -129,4 +129,18 @@ class IncomeEventTest < ActiveSupport::TestCase
     assert_not event.valid?
     assert_includes event.errors[:raw_source_record], "must belong to the same family"
   end
+  test "ordinary dividend income cannot be accrued before declaration" do
+    event = IncomeEvent.new(
+      family: families(:empty),
+      event_key: "dividend:no-accrual",
+      income_type: "dividend",
+      state: "accrued",
+      amount: 5,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not event.valid?
+    assert_includes event.errors[:state], "dividend income must remain forecast until it is declared or received"
+  end
 end
