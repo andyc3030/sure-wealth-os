@@ -1,0 +1,44 @@
+# frozen_string_literal: true
+
+module WealthOs
+  module CorporateActions
+    class SplitAdjustment
+      Result = Data.define(:quantity, :unit_cost, :total_cost, :ratio)
+
+      def self.call(quantity:, unit_cost:, numerator:, denominator:)
+        qty = quantity.to_d
+        cost = unit_cost.to_d
+        num = numerator.to_d
+        den = denominator.to_d
+
+        raise ArgumentError, "split numerator must be positive" unless num.positive?
+        raise ArgumentError, "split denominator must be positive" unless den.positive?
+        raise ArgumentError, "unit cost must be non-negative" if cost.negative?
+
+        ratio = num / den
+        adjusted_quantity = qty * ratio
+        adjusted_unit_cost = cost / ratio
+
+        Result.new(
+          adjusted_quantity,
+          adjusted_unit_cost,
+          adjusted_quantity * adjusted_unit_cost,
+          ratio
+        )
+      end
+
+      def self.for_action(action, quantity:, unit_cost:)
+        unless CorporateAction::RATIO_ACTIONS.include?(action.action_type)
+          raise ArgumentError, "corporate action is not a split or reverse split"
+        end
+
+        call(
+          quantity: quantity,
+          unit_cost: unit_cost,
+          numerator: action.ratio_numerator,
+          denominator: action.ratio_denominator
+        )
+      end
+    end
+  end
+end
