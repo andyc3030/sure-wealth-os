@@ -3,6 +3,7 @@
 require "digest"
 
 class RawSourceRecord < ApplicationRecord
+  IdempotencyCollision = Class.new(StandardError)
   FORBIDDEN_SECRET_KEYS = %w[
     access_token refresh_token bearer_token client_secret api_key api_secret
     password authorization private_key
@@ -35,7 +36,13 @@ class RawSourceRecord < ApplicationRecord
           source_system: source_system,
           idempotency_key: idempotency_key.to_s
         )
-        return existing if existing
+        return verify_idempotent_replay!(
+          existing,
+          record_type: record_type,
+          source_key: source_key,
+          payload_sha256: digest,
+          schema_version: schema_version
+        ) if existing
       end
 
       create!(
@@ -56,11 +63,29 @@ class RawSourceRecord < ApplicationRecord
     rescue ActiveRecord::RecordNotUnique
       raise unless idempotency_key.present?
 
-      find_by!(
+      existing = find_by!(
         family: family,
         source_system: source_system,
         idempotency_key: idempotency_key.to_s
       )
+      verify_idempotent_replay!(
+        existing,
+        record_type: record_type,
+        source_key: source_key,
+        payload_sha256: digest,
+        schema_version: schema_version
+      )
+    end
+
+    def verify_idempotent_replay!(record, record_type:, source_key:, payload_sha256:, schema_version:)
+      matches = record.record_type == record_type.to_s &&
+                record.source_key == source_key.to_s &&
+                record.payload_sha256 == payload_sha256 &&
+                record.schema_version == schema_version.to_i
+      return record if matches
+
+      raise IdempotencyCollision,
+            "idempotency key was reused for different raw source content"
     end
 
     def digest_for(payload)
