@@ -87,5 +87,4 @@ class CorporateActionTest < ActiveSupport::TestCase
         payload: { "verified" => true }
       )
     end
-
 end
