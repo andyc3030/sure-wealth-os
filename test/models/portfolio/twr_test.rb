@@ -44,4 +44,15 @@ class Portfolio::TwrTest < ActiveSupport::TestCase
     assert_equal "external_flow is required", error.message
   end
 
+  test "rejects a missing segment date before sorting" do
+    error = assert_raises(Portfolio::Twr::InvalidSegment) do
+      Portfolio::Twr.new([
+        { date: nil, begin_value: 100, end_value: 110, external_flow: 0 },
+        { date: Date.current, begin_value: 110, end_value: 121, external_flow: 0 }
+      ])
+    end
+
+    assert_equal "segment date is required", error.message
+  end
+
 end
