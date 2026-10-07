@@ -13,6 +13,7 @@ class CreateWealthOsAccountingFoundation < ActiveRecord::Migration[8.1]
       t.decimal :gross_amount, precision: 19, scale: 4, null: false, default: 0
       t.decimal :withholding_tax_amount, precision: 19, scale: 4, null: false, default: 0
       t.decimal :fee_amount, precision: 19, scale: 4, null: false, default: 0
+      t.decimal :cash_received_amount, precision: 19, scale: 4
       t.string :currency, null: false, limit: 3
       t.date :expected_on
       t.date :accrual_start_date
@@ -101,7 +102,7 @@ class CreateWealthOsAccountingFoundation < ActiveRecord::Migration[8.1]
               name: "idx_corporate_actions_security_date"
 
     add_check_constraint :income_events,
-                         "gross_amount >= 0 AND withholding_tax_amount >= 0 AND fee_amount >= 0",
+                         "gross_amount >= 0 AND withholding_tax_amount >= 0 AND fee_amount >= 0 AND (cash_received_amount IS NULL OR cash_received_amount >= 0)",
                          name: "chk_income_events_nonnegative_amounts"
     add_check_constraint :income_events,
                          "state IN ('forecast', 'accrued', 'declared', 'received')",
