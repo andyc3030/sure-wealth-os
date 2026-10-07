@@ -17,16 +17,10 @@ module WealthOs
         return nil unless income_type
         return nil unless entry.amount.to_d.negative?
 
-        # Provider transaction identifiers are commonly scoped to an account,
-        # not guaranteed unique across a whole family. Include the canonical
-        # account id so two broker/bank accounts can legitimately receive the
-        # same provider external id without collapsing into one income lifecycle.
-        event_key = [
-          entry.account_id,
-          entry.source.presence || "manual",
-          entry.external_id.presence || entry.id,
-          income_type
-        ].join(":")
+        # The canonical Entry id is stable across provider re-sync and
+        # pending→posted reconciliation. Do not key received income to a
+        # provider external id that may change after the Entry is claimed.
+        event_key = [ "entry", entry.id, income_type ].join(":")
 
         source_system = entry.source.presence || "manual"
         attrs = {
@@ -44,11 +38,14 @@ module WealthOs
 
         current = IncomeEvent.current_for(family: entry.account.family, event_key: event_key)
         if current
+          expected_security_id = attrs.key?(:security) ? attrs[:security]&.id : current.security_id
+          expected_raw_source_id = attrs.key?(:raw_source_record) ? attrs[:raw_source_record]&.id : current.raw_source_record_id
+
           unchanged = current.state == "received" &&
                       current.account_id == attrs[:account].id &&
-                      current.security_id == attrs[:security]&.id &&
+                      current.security_id == expected_security_id &&
                       current.entry_id == entry.id &&
-                      current.raw_source_record_id == attrs[:raw_source_record]&.id &&
+                      current.raw_source_record_id == expected_raw_source_id &&
                       current.cash_amount.to_d == attrs[:cash_amount] &&
                       current.effective_date == attrs[:effective_date] &&
                       current.source_system == attrs[:source_system] &&
