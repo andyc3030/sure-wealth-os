@@ -365,7 +365,7 @@ class SnaptradeAccount::ActivitiesProcessorTest < ActiveSupport::TestCase
     assert_equal "Other", entry.entryable.investment_activity_label
   end
 
-  test "processes RETURN_OF_CAPITAL, DISTRIBUTION, and SUBSTITUTE_DIVIDEND as negative cash inflows with Dividend label" do
+  test "preserves RETURN_OF_CAPITAL, DISTRIBUTION, and SUBSTITUTE_DIVIDEND without projecting them as dividend income" do
     process_activities(
       build_cash_activity(id: "roc_001", type: "RETURN_OF_CAPITAL", amount: 75.00, settlement_date: Date.current.to_s, symbol: "VTI"),
       build_cash_activity(id: "dist_001", type: "DISTRIBUTION", amount: 120.00, settlement_date: Date.current.to_s, symbol: "VNQ"),
@@ -380,11 +380,13 @@ class SnaptradeAccount::ActivitiesProcessorTest < ActiveSupport::TestCase
     assert_not_nil dist
     assert_not_nil sub_div
     assert_equal(-75.00, roc.amount.to_f)
-    assert_equal "Dividend", roc.entryable.investment_activity_label
+    assert_equal "Return of Capital", roc.entryable.investment_activity_label
     assert_equal(-120.00, dist.amount.to_f)
-    assert_equal "Dividend", dist.entryable.investment_activity_label
+    assert_equal "Distribution", dist.entryable.investment_activity_label
     assert_equal(-45.00, sub_div.amount.to_f)
-    assert_equal "Dividend", sub_div.entryable.investment_activity_label
+    assert_equal "Substitute Dividend", sub_div.entryable.investment_activity_label
+
+    assert_empty IncomeEvent.where(entry_id: [ roc.id, dist.id, sub_div.id ])
   end
 
   test "processes cash FEE and TAX as positive outflow and INTEREST as negative inflow" do
