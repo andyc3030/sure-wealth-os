@@ -285,10 +285,13 @@ class Account::ProviderImportAdapter
       entry.save!
       entry.transaction.save! if entry.transaction.changed?
 
-      # Project actual booked investment income into the Wealth OS lifecycle.
-      # Forecast/accrual/declaration sources can later supersede into the same
-      # economic event; the projector is idempotent for an unchanged booked row.
-      WealthOs::Income::ReceivedTransactionProjector.call(entry)
+      # Only an explicit provider-supplied activity label is authoritative
+      # enough to create an accounting income event. Sure's generic name-based
+      # auto-detection remains useful for UI classification but must not promote
+      # a heuristic into the Wealth OS ledger.
+      if investment_activity_label.present?
+        WealthOs::Income::ReceivedTransactionProjector.call(entry)
+      end
 
       # Auto-resolve any open Goal pledges on this account whose tolerance
       # window matches the posted transaction. Idempotent via the partial-unique
