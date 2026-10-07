@@ -103,11 +103,32 @@ class CreateWealthOsAccountingFoundation < ActiveRecord::Migration[8.1]
     add_check_constraint :income_events,
                          "gross_amount >= 0 AND withholding_tax_amount >= 0 AND fee_amount >= 0",
                          name: "chk_income_events_nonnegative_amounts"
+    add_check_constraint :income_events,
+                         "state IN ('forecast', 'accrued', 'declared', 'received')",
+                         name: "chk_income_events_state"
+    add_check_constraint :income_events,
+                         "income_type IN ('dividend', 'interest', 'coupon', 'distribution', 'rent', 'salary', 'pension', 'annuity', 'business_income', 'other')",
+                         name: "chk_income_events_type"
+    add_check_constraint :income_events,
+                         "confidence IN ('confirmed', 'high', 'estimated', 'low', 'unknown')",
+                         name: "chk_income_events_confidence"
     add_check_constraint :liability_payments,
                          "total_amount >= 0 AND principal_amount >= 0 AND interest_amount >= 0 AND fee_amount >= 0 AND insurance_amount >= 0",
                          name: "chk_liability_payments_nonnegative_amounts"
+    add_check_constraint :liability_payments,
+                         "payment_type IN ('actual', 'scheduled')",
+                         name: "chk_liability_payments_type"
+    add_check_constraint :liability_payments,
+                         "total_amount = principal_amount + interest_amount + fee_amount + insurance_amount",
+                         name: "chk_liability_payments_component_sum"
     add_check_constraint :corporate_actions,
                          "(ratio_numerator IS NULL OR ratio_numerator > 0) AND (ratio_denominator IS NULL OR ratio_denominator > 0)",
                          name: "chk_corporate_actions_positive_ratio"
+    add_check_constraint :corporate_actions,
+                         "action_type IN ('split', 'reverse_split', 'merger', 'spinoff', 'rights', 'ticker_change', 'cash_dividend', 'special_dividend', 'return_of_capital', 'fund_reorganization')",
+                         name: "chk_corporate_actions_type"
+    add_check_constraint :corporate_actions,
+                         "status IN ('observed', 'validated', 'applied', 'reconciled', 'ignored')",
+                         name: "chk_corporate_actions_status"
   end
 end
