@@ -31,6 +31,11 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
     end
 
     add_index :income_events, [ :family_id, :event_key, :created_at ], name: "idx_income_events_lifecycle"
+    add_index :income_events,
+              [ :family_id, :event_key ],
+              unique: true,
+              where: "supersedes_id IS NULL",
+              name: "idx_income_events_unique_root"
     add_index :income_events, [ :family_id, :state, :effective_date ], name: "idx_income_events_reporting"
     add_index :income_events, :supersedes_id, unique: true, where: "supersedes_id IS NOT NULL", name: "idx_income_events_one_successor"
 
@@ -63,6 +68,11 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
 
     add_index :liability_payments, [ :loan_id, :payment_date ], name: "idx_liability_payments_schedule"
     add_index :liability_payments,
+              [ :loan_id, :payment_date, :source_system ],
+              unique: true,
+              where: "state = 'scheduled' AND source_system IS NOT NULL",
+              name: "idx_liability_payments_unique_schedule"
+    add_index :liability_payments,
               [ :family_id, :source_system, :external_id ],
               unique: true,
               where: "external_id IS NOT NULL AND source_system IS NOT NULL",
@@ -92,6 +102,11 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
     end
 
     add_index :corporate_actions, [ :family_id, :security_id, :effective_date ], name: "idx_corporate_actions_position_math"
+    add_index :corporate_actions,
+              [ :family_id, :security_id, :action_type, :effective_date ],
+              unique: true,
+              where: "status = 'confirmed' AND action_type IN ('stock_split', 'reverse_split')",
+              name: "idx_corporate_actions_unique_confirmed_split"
     add_index :corporate_actions,
               [ :family_id, :source_system, :external_id ],
               unique: true,
