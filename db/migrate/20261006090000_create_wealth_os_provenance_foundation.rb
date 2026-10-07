@@ -45,6 +45,16 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
     add_index :source_identities,
               [ :canonical_type, :canonical_id ],
               name: "idx_source_identities_canonical"
+    add_index :source_identities,
+              [ :family_id, :source_system, :entity_type, :external_id ],
+              unique: true,
+              where: "supersedes_id IS NULL",
+              name: "idx_source_identities_unique_root"
+    add_index :source_identities,
+              :supersedes_id,
+              unique: true,
+              where: "supersedes_id IS NOT NULL",
+              name: "idx_source_identities_one_successor"
 
     create_table :source_authority_rules, id: :uuid do |t|
       t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
@@ -87,6 +97,10 @@ class CreateWealthOsProvenanceFoundation < ActiveRecord::Migration[8.1]
     add_index :source_conflicts,
               [ :source_record_a_id, :source_record_b_id, :field_name, :status ],
               name: "idx_source_conflicts_pair"
+    add_index :source_conflicts,
+              [ :source_record_a_id, :source_record_b_id, :field_name ],
+              unique: true,
+              name: "idx_source_conflicts_unique_pair"
 
     create_table :reconciliation_events, id: :uuid do |t|
       t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
