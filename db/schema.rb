@@ -3009,7 +3009,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.uuid "account_id"
     t.date "accrual_end"
     t.date "accrual_start"
-    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.decimal "amount", precision: 19, scale: 4
     t.decimal "cash_amount", precision: 19, scale: 4
     t.string "confidence", default: "unknown", null: false
     t.datetime "created_at", null: false
