@@ -34,6 +34,7 @@ class IncomeEvent < ApplicationRecord
               message: "already has a lifecycle root"
             },
             if: -> { supersedes_id.nil? }
+  validate :linked_account_matches_family
   validate :superseded_event_matches_identity
   validate :state_transition_is_allowed
   validate :accrued_state_matches_income_type
@@ -93,6 +94,12 @@ class IncomeEvent < ApplicationRecord
     def prevent_mutation
       errors.add(:base, "income event versions are immutable; create a successor")
       throw(:abort)
+    end
+
+    def linked_account_matches_family
+      return if account.nil? || family.nil?
+
+      errors.add(:account, "must belong to the same family") if account.family_id != family_id
     end
 
     def superseded_event_matches_identity
