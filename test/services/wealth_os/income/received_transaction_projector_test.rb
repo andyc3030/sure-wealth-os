@@ -88,4 +88,26 @@ class WealthOs::Income::ReceivedTransactionProjectorTest < ActiveSupport::TestCa
 
     assert_nil WealthOs::Income::ReceivedTransactionProjector.call(entry)
   end
+  test "ignores a positive outflow even when labelled as income" do
+    account = families(:empty).accounts.create!(
+      name: "Broker Outflow",
+      balance: 1000,
+      cash_balance: 100,
+      currency: "USD",
+      accountable: Investment.new
+    )
+
+    entry = account.entries.create!(
+      name: "Dividend adjustment",
+      amount: 50,
+      currency: "USD",
+      date: Date.current,
+      external_id: "div-outflow-1",
+      source: "test_provider",
+      entryable: Transaction.new(investment_activity_label: "Dividend")
+    )
+
+    assert_nil WealthOs::Income::ReceivedTransactionProjector.call(entry)
+  end
+
 end
