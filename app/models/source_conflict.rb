@@ -14,6 +14,8 @@ class SourceConflict < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validates :currency, length: { is: 3 }, allow_nil: true
   validate :records_belong_to_family
+  validate :selected_record_is_conflict_side
+  before_update :prevent_changes_after_resolution
 
   class << self
     def detect!(family:, field_name:, record_a:, record_b:, value_a:, value_b:, account: nil, subject: nil,
@@ -69,5 +71,19 @@ class SourceConflict < ApplicationRecord
       [ source_record_a, source_record_b, selected_source_record ].compact.each do |record|
         errors.add(:base, "source records must belong to the same family") if record.family_id != family_id
       end
+    end
+
+    def selected_record_is_conflict_side
+      return if selected_source_record.nil?
+      return if [ source_record_a_id, source_record_b_id ].include?(selected_source_record_id)
+
+      errors.add(:selected_source_record, "must be one side of the conflict")
+    end
+
+    def prevent_changes_after_resolution
+      return if status_in_database == "open"
+
+      errors.add(:base, "resolved or ignored conflicts are immutable")
+      throw(:abort)
     end
 end
