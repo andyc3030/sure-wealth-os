@@ -63,6 +63,9 @@ class ResearchSource < ApplicationRecord
   validates :source_type, inclusion: { in: SOURCE_TYPES }
   validates :status, inclusion: { in: STATUSES }
   validates :title, :publisher, :url, :accessed_at, presence: true
+  validate :promotional_source_is_not_accepted
+  validate :commercial_conflict_is_disclosed
+  validate :raw_source_record_matches_family
 
   scope :eligible, -> { where.not(status: "rejected") }
   scope :accepted, -> { where(status: "accepted") }
@@ -82,4 +85,26 @@ class ResearchSource < ApplicationRecord
   def independence_key
     independence_group.presence || publisher
   end
+
+  private
+
+    def promotional_source_is_not_accepted
+      return unless promotional? || source_type == "promotional"
+      return unless status == "accepted"
+
+      errors.add(:status, "must be downgraded or rejected for promotional sources")
+    end
+
+    def commercial_conflict_is_disclosed
+      return unless commercial_conflict?
+      return if conflict_notes.present?
+
+      errors.add(:conflict_notes, "must disclose the commercial conflict")
+    end
+
+    def raw_source_record_matches_family
+      return if raw_source_record.nil? || raw_source_record.family_id == family_id
+
+      errors.add(:raw_source_record, "must belong to the same family")
+    end
 end
