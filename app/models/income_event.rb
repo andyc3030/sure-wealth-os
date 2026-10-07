@@ -41,6 +41,7 @@ class IncomeEvent < ApplicationRecord
 
   after_create :record_initial_transition!
   before_update :prevent_untracked_mutation
+  before_destroy :prevent_destroy
 
   def net_amount
     gross_amount.to_d - withholding_tax_amount.to_d - fee_amount.to_d
@@ -121,6 +122,11 @@ class IncomeEvent < ApplicationRecord
       return if changes_to_save.empty?
 
       errors.add(:base, "income events must be changed through transition_to!")
+      throw(:abort)
+    end
+
+    def prevent_destroy
+      errors.add(:base, "income events are audit records and cannot be deleted individually")
       throw(:abort)
     end
 
