@@ -5,7 +5,7 @@ class IncomeEvent < ApplicationRecord
   STATES = %w[forecast accrued declared received].freeze
   TYPES = %w[dividend interest coupon distribution rent other].freeze
   CONFIDENCE_LEVELS = %w[confirmed high estimated low unknown].freeze
-  ACCRUABLE_TYPES = %w[interest coupon rent other].freeze
+  ACCRUABLE_TYPES = %w[interest coupon rent].freeze
 
   TRANSITIONS = {
     "forecast" => %w[forecast accrued declared received],
@@ -13,6 +13,14 @@ class IncomeEvent < ApplicationRecord
     "declared" => %w[declared received],
     "received" => %w[received]
   }.freeze
+
+  TRANSITION_ATTRIBUTES = %i[
+    account security raw_source_record amount cash_amount tax_withheld fees
+    effective_date declared_on ex_date payable_on accrual_start accrual_end
+    source_system method confidence metadata
+  ].freeze
+
+  CASH_RECONCILIATION_TOLERANCE = BigDecimal("0.01")
 
   belongs_to :family
   belongs_to :account, optional: true
@@ -38,6 +46,8 @@ class IncomeEvent < ApplicationRecord
   validate :superseded_event_matches_identity
   validate :state_transition_is_allowed
   validate :accrued_state_matches_income_type
+  validate :received_cash_reconciles
+  validate :cash_amount_only_when_received
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
@@ -53,32 +63,39 @@ class IncomeEvent < ApplicationRecord
   end
 
   def transition_to!(new_state, **attributes)
+    attributes = attributes.symbolize_keys
+    unknown = attributes.keys - TRANSITION_ATTRIBUTES
+    raise ArgumentError, "unsupported income transition attributes: #{unknown.sort.join(", ")}" if unknown.any?
+
+    defaults = {
+      account: account,
+      security: security,
+      raw_source_record: raw_source_record,
+      amount: amount,
+      cash_amount: cash_amount,
+      tax_withheld: tax_withheld,
+      fees: fees,
+      effective_date: effective_date,
+      declared_on: declared_on,
+      ex_date: ex_date,
+      payable_on: payable_on,
+      accrual_start: accrual_start,
+      accrual_end: accrual_end,
+      source_system: source_system,
+      method: method,
+      confidence: confidence,
+      metadata: metadata
+    }
+
     self.class.create!(
-      {
+      defaults.merge(attributes).merge(
         family: family,
-        account: account,
-        security: security,
-        raw_source_record: attributes.delete(:raw_source_record) || raw_source_record,
         supersedes: self,
         event_key: event_key,
         income_type: income_type,
         state: new_state.to_s,
-        amount: amount,
-        cash_amount: cash_amount,
-        tax_withheld: tax_withheld,
-        fees: fees,
-        currency: currency,
-        effective_date: effective_date,
-        declared_on: declared_on,
-        ex_date: ex_date,
-        payable_on: payable_on,
-        accrual_start: accrual_start,
-        accrual_end: accrual_end,
-        source_system: source_system,
-        method: method,
-        confidence: confidence,
-        metadata: metadata
-      }.merge(attributes)
+        currency: currency
+      )
     )
   end
 
@@ -108,6 +125,15 @@ class IncomeEvent < ApplicationRecord
       errors.add(:supersedes, "must belong to the same family") if supersedes.family_id != family_id
       errors.add(:event_key, "must match the superseded event") if supersedes.event_key != event_key
       errors.add(:income_type, "must match the superseded event") if supersedes.income_type != income_type
+      errors.add(:currency, "must match the superseded event") if supersedes.currency != currency
+
+      if supersedes.account_id.present? && supersedes.account_id != account_id
+        errors.add(:account, "cannot change once assigned to an income lifecycle")
+      end
+
+      if supersedes.security_id.present? && supersedes.security_id != security_id
+        errors.add(:security, "cannot change once assigned to an income lifecycle")
+      end
     end
 
     def accrued_state_matches_income_type
@@ -122,5 +148,26 @@ class IncomeEvent < ApplicationRecord
       return if TRANSITIONS.fetch(supersedes.state, []).include?(state)
 
       errors.add(:state, "cannot transition from #{supersedes.state} to #{state}")
+    end
+
+    def cash_amount_only_when_received
+      return if cash_amount.nil? || state == "received"
+
+      errors.add(:cash_amount, "can only be recorded for received income")
+    end
+
+    def received_cash_reconciles
+      return unless state == "received"
+
+      calculated_cash = amount.to_d - tax_withheld.to_d - fees.to_d
+      if calculated_cash.negative?
+        errors.add(:base, "tax withheld plus fees cannot exceed gross income")
+        return
+      end
+
+      return if cash_amount.nil?
+      return if (cash_amount.to_d - calculated_cash).abs <= CASH_RECONCILIATION_TOLERANCE
+
+      errors.add(:cash_amount, "must equal gross income minus withholding tax and fees")
     end
 end
