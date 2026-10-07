@@ -4,6 +4,7 @@ module WealthOs
   module Liabilities
     class ScheduleDecomposer
       MissingSchedulePayment = Class.new(StandardError)
+      ScheduleConflict = Class.new(StandardError)
 
       def self.call(loan:, payment_date:, fee_amount: 0, insurance_amount: 0, state: "scheduled",
                     source_system: "loan_schedule", entry: nil, raw_source_record: nil, external_id: nil)
@@ -15,7 +16,7 @@ module WealthOs
         insurance = insurance_amount.to_d
         total = payment.payment.amount.to_d + fee + insurance
 
-        LiabilityPayment.create!(
+        attrs = {
           family: loan.account.family,
           account: loan.account,
           loan: loan,
@@ -32,7 +33,30 @@ module WealthOs
           source_system: source_system,
           schedule_payment_number: payment.number,
           external_id: external_id
-        )
+        }
+
+        if state == "scheduled" && source_system.present?
+          existing = LiabilityPayment.find_by(
+            loan: loan,
+            payment_date: payment.date,
+            state: state,
+            source_system: source_system
+          )
+
+          if existing
+            comparable = %i[
+              total_amount principal_amount interest_amount fee_amount
+              insurance_amount currency schedule_payment_number
+            ]
+
+            same = comparable.all? { |field| existing.public_send(field).to_s == attrs.fetch(field).to_s }
+            return existing if same
+
+            raise ScheduleConflict, "scheduled liability decomposition changed for #{payment.date}"
+          end
+        end
+
+        LiabilityPayment.create!(**attrs)
       end
     end
   end
