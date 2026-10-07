@@ -124,5 +124,4 @@ class WealthOs::Liabilities::ScheduleDecomposerTest < ActiveSupport::TestCase
       )
     end
   end
-
 end
