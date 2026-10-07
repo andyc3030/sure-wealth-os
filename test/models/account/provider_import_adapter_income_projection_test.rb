@@ -30,12 +30,14 @@ class Account::ProviderImportAdapterIncomeProjectionTest < ActiveSupport::TestCa
       investment_activity_label: "Dividend"
     )
 
-    key = [ account.id, "test_provider", "provider-dividend-1", "dividend" ].join(":")
+    key = [ "entry", first.id, "dividend" ].join(":")
     events = IncomeEvent.where(family: account.family, event_key: key)
 
     assert_equal first.id, second.id
     assert_equal 1, events.count
     assert_equal "received", events.first.state
+    assert_nil events.first.amount
+    assert_equal first.id, events.first.entry_id
     assert_equal BigDecimal("25"), events.first.received_cash
   end
 
