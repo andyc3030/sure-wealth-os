@@ -41,4 +41,16 @@ class WealthOs::Performance::AttributionTest < ActiveSupport::TestCase
     assert_equal BigDecimal("180"), result.explained_change
     assert_equal BigDecimal("20"), result.unexplained_change
   end
+  test "rejects nil components rather than treating them as zero" do
+    error = assert_raises(ArgumentError) do
+      WealthOs::Performance::Attribution.call(
+        opening_value: 1000,
+        closing_value: 1100,
+        capital_return: nil
+      )
+    end
+
+    assert_equal "nil attribution components: capital_return", error.message
+  end
+
 end
