@@ -24,6 +24,9 @@ class CorporateAction < ApplicationRecord
   validate :ratio_present_for_split
   validate :family_scope_matches
 
+  before_update :prevent_mutation
+  before_destroy :prevent_mutation
+
   private
 
     def ratio_present_for_split
@@ -38,5 +41,10 @@ class CorporateAction < ApplicationRecord
       if raw_source_record && raw_source_record.family_id != family_id
         errors.add(:raw_source_record, "must belong to the same family")
       end
+    end
+
+    def prevent_mutation
+      errors.add(:base, "corporate actions are immutable in the Phase 4 foundation")
+      throw(:abort)
     end
 end
