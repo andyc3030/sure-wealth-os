@@ -16,7 +16,7 @@ class IncomeEvent < ApplicationRecord
   }.freeze
 
   REVISION_FIELDS = %w[
-    gross_amount withholding_tax_amount fee_amount currency expected_on
+    gross_amount withholding_tax_amount fee_amount cash_received_amount currency expected_on
     accrual_start_date accrual_end_date declared_on payable_on received_on
     confidence source_system source_key metadata raw_source_record_id
   ].freeze
@@ -36,9 +36,11 @@ class IncomeEvent < ApplicationRecord
   validates :currency, length: { is: 3 }
   validates :gross_amount, :withholding_tax_amount, :fee_amount,
             numericality: { greater_than_or_equal_to: 0 }
+  validates :cash_received_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :account_and_raw_source_match_family
   validate :state_dates_are_coherent
 
+  before_validation :populate_received_cash, if: :received?
   after_create :record_initial_transition!
   before_update :prevent_untracked_mutation
   before_destroy :prevent_destroy
@@ -84,6 +86,10 @@ class IncomeEvent < ApplicationRecord
     state == "received"
   end
 
+  def received_cash
+    cash_received_amount.to_d
+  end
+
   private
 
     def record_initial_transition!
@@ -106,6 +112,7 @@ class IncomeEvent < ApplicationRecord
         "withholding_tax_amount" => withholding_tax_amount.to_d.to_s("F"),
         "fee_amount" => fee_amount.to_d.to_s("F"),
         "net_amount" => net_amount.to_s("F"),
+        "cash_received_amount" => cash_received_amount&.to_d&.to_s("F"),
         "currency" => currency,
         "expected_on" => expected_on&.iso8601,
         "accrual_start_date" => accrual_start_date&.iso8601,
@@ -115,6 +122,10 @@ class IncomeEvent < ApplicationRecord
         "received_on" => received_on&.iso8601,
         "confidence" => confidence
       }
+    end
+
+    def populate_received_cash
+      self.cash_received_amount = net_amount if cash_received_amount.nil?
     end
 
     def prevent_untracked_mutation
