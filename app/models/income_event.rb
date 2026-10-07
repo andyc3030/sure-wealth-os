@@ -15,7 +15,7 @@ class IncomeEvent < ApplicationRecord
   }.freeze
 
   TRANSITION_ATTRIBUTES = %i[
-    account security raw_source_record amount cash_amount tax_withheld fees
+    account security entry raw_source_record amount cash_amount tax_withheld fees
     effective_date declared_on ex_date payable_on accrual_start accrual_end
     source_system method confidence metadata
   ].freeze
@@ -25,6 +25,7 @@ class IncomeEvent < ApplicationRecord
   belongs_to :family
   belongs_to :account, optional: true
   belongs_to :security, optional: true
+  belongs_to :entry, optional: true
   belongs_to :supersedes, class_name: "IncomeEvent", optional: true
   has_one :successor, class_name: "IncomeEvent", foreign_key: :supersedes_id
 
@@ -48,6 +49,8 @@ class IncomeEvent < ApplicationRecord
   validate :accrued_state_matches_income_type
   validate :received_cash_reconciles
   validate :cash_amount_only_when_received
+  validate :entry_matches_income_account
+  validate :received_state_has_evidence
 
   before_update :prevent_mutation
   before_destroy :prevent_mutation
@@ -70,6 +73,7 @@ class IncomeEvent < ApplicationRecord
     defaults = {
       account: account,
       security: security,
+      entry: entry,
       raw_source_record: raw_source_record,
       amount: amount,
       cash_amount: cash_amount,
@@ -134,6 +138,10 @@ class IncomeEvent < ApplicationRecord
       if supersedes.security_id.present? && supersedes.security_id != security_id
         errors.add(:security, "cannot change once assigned to an income lifecycle")
       end
+
+      if supersedes.entry_id.present? && supersedes.entry_id != entry_id
+        errors.add(:entry, "cannot change once assigned to an income lifecycle")
+      end
     end
 
     def accrued_state_matches_income_type
@@ -154,6 +162,22 @@ class IncomeEvent < ApplicationRecord
       return if cash_amount.nil? || state == "received"
 
       errors.add(:cash_amount, "can only be recorded for received income")
+    end
+
+    def entry_matches_income_account
+      return if entry.nil?
+
+      errors.add(:entry, "must belong to the same family") if entry.account.family_id != family_id
+      if account_id.present? && entry.account_id != account_id
+        errors.add(:entry, "must belong to the income account")
+      end
+    end
+
+    def received_state_has_evidence
+      return unless state == "received"
+      return if entry.present? || raw_source_record.present?
+
+      errors.add(:base, "received income requires a booked entry or raw source record")
     end
 
     def received_cash_reconciles
