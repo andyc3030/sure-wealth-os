@@ -6,6 +6,7 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
       t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
       t.references :account, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :security, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
+      t.references :entry, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :raw_source_record, type: :uuid, null: true, foreign_key: { on_delete: :nullify }
       t.references :supersedes, type: :uuid, null: true, foreign_key: { to_table: :income_events, on_delete: :nullify }
 
