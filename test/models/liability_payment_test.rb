@@ -1,4 +1,4 @@
-<sub>require "test_helper"
+require "test_helper"
 
 class LiabilityPaymentTest < ActiveSupport::TestCase
   test "principal is not financing expense" do
@@ -86,4 +86,3 @@ class LiabilityPaymentTest < ActiveSupport::TestCase
     assert_equal BigDecimal("850"), payment.net_worth_cost
   end
 end
-</sub>
