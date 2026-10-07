@@ -16,6 +16,9 @@ class LiabilityPayment < ApplicationRecord
   validates :total_amount, :principal_amount, :interest_amount, :fee_amount, :insurance_amount,
             numericality: { greater_than_or_equal_to: 0 }
   validate :loan_account_family_match
+  validate :entry_matches_liability_account
+  validate :currency_matches_liability_account
+  validate :actual_or_reconciled_has_evidence
   validate :components_equal_total
 
   before_update :prevent_mutation
@@ -52,6 +55,26 @@ class LiabilityPayment < ApplicationRecord
       loan_account = loan.account
       errors.add(:account, "must be the loan's account") unless loan_account&.id == account_id
       errors.add(:family, "must own the loan account") unless account.family_id == family_id
+    end
+
+    def entry_matches_liability_account
+      return if entry.nil? || account.nil?
+      return if entry.account_id == account_id
+
+      errors.add(:entry, "must belong to the liability account")
+    end
+
+    def currency_matches_liability_account
+      return if account.nil? || currency.blank? || account.currency == currency
+
+      errors.add(:currency, "must match the liability account currency")
+    end
+
+    def actual_or_reconciled_has_evidence
+      return if state == "scheduled"
+      return if entry.present? || raw_source_record.present?
+
+      errors.add(:base, "#{state} liability payments require an entry or raw source record")
     end
 
     def components_equal_total
