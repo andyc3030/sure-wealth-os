@@ -2935,6 +2935,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_050000) do
     t.text "competitive_position_analysis"
     t.text "correlation_context"
     t.datetime "created_at", null: false
+    t.text "downside_analysis"
     t.decimal "entry_zone_high", precision: 19, scale: 6
     t.decimal "entry_zone_low", precision: 19, scale: 6
     t.decimal "evidence_quality_score", precision: 3, scale: 2
