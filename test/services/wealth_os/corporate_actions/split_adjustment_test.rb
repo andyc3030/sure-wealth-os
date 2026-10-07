@@ -1,4 +1,4 @@
-require "test_helper"
+<sub>require "test_helper"
 
 class WealthOs::CorporateActions::SplitAdjustmentTest < ActiveSupport::TestCase
   test "two for one doubles quantity and halves per-unit basis without changing total basis" do
@@ -27,3 +27,4 @@ class WealthOs::CorporateActions::SplitAdjustmentTest < ActiveSupport::TestCase
     assert_equal BigDecimal("500"), result.total_cost_basis
   end
 end
+</sub>
