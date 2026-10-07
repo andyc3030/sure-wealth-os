@@ -6,8 +6,11 @@ module WealthOs
       Result = Data.define(:quantity, :cost_basis_per_unit, :total_cost_basis)
 
       def self.call(quantity:, numerator:, denominator:, cost_basis_per_unit: nil)
-        ratio = numerator.to_d / denominator.to_d
-        raise ArgumentError, "split ratio must be positive" unless ratio.positive?
+        numerator = numerator.to_d
+        denominator = denominator.to_d
+        raise ArgumentError, "split ratio must be positive" unless numerator.positive? && denominator.positive?
+
+        ratio = numerator / denominator
 
         quantity = quantity.to_d
         adjusted_quantity = quantity * ratio
