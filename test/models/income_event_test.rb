@@ -79,4 +79,54 @@ class IncomeEventTest < ActiveSupport::TestCase
     assert_not event.destroy
     assert IncomeEvent.exists?(event.id)
   end
+  test "only one lifecycle root is allowed per family and event key" do
+    family = families(:empty)
+
+    IncomeEvent.create!(
+      family: family,
+      event_key: "dividend:unique",
+      income_type: "dividend",
+      state: "forecast",
+      amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    duplicate = IncomeEvent.new(
+      family: family,
+      event_key: "dividend:unique",
+      income_type: "dividend",
+      state: "forecast",
+      amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:event_key], "already has a lifecycle root"
+  end
+
+  test "rejects raw source lineage from another family" do
+    raw = RawSourceRecord.ingest!(
+      family: families(:dylan_family),
+      source_system: "manual",
+      record_type: "income",
+      source_key: "foreign-income",
+      payload: { "amount" => "10" }
+    )
+
+    event = IncomeEvent.new(
+      family: families(:empty),
+      raw_source_record: raw,
+      event_key: "interest:foreign",
+      income_type: "interest",
+      state: "received",
+      amount: 10,
+      currency: "USD",
+      effective_date: Date.current
+    )
+
+    assert_not event.valid?
+    assert_includes event.errors[:raw_source_record], "must belong to the same family"
+  end
 end
