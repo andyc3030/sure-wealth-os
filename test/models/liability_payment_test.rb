@@ -167,5 +167,4 @@ class LiabilityPaymentTest < ActiveSupport::TestCase
         payload: { "verified" => true }
       )
     end
-
 end
