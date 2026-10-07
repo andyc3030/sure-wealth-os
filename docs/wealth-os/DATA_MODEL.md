@@ -100,3 +100,82 @@ The same lineage pattern can later be attached to:
 - daily snapshots.
 
 No new field should bypass source authority/reconciliation merely because it is added later.
+
+
+## Research intelligence amendment
+
+The Phase 3 provenance model now extends into research/advisory data with:
+
+### research_sources
+
+Stores source identity and classification:
+
+- theme;
+- title/publisher/URL;
+- source type;
+- publication/access dates;
+- independence group;
+- commercial conflict disclosure;
+- promotional/dissenting flags;
+- accepted/downgraded/rejected status;
+- optional raw-source lineage.
+
+### research_source_scores
+
+Versioned source-quality scoring:
+
+- authority;
+- evidence quality;
+- independence;
+- methodology transparency;
+- investment relevance;
+- recency;
+- deterministic overall arithmetic mean;
+- scoring rationale.
+
+### research_claims
+
+Claim-level provenance and classification:
+
+- fact / forecast / opinion / assumption / promotional / recommendation;
+- paraphrased claim summary;
+- locator;
+- materiality;
+- supports/challenges/neutral/mixed thesis effect;
+- cross-check key;
+- confidence;
+- source/raw lineage.
+
+### research_assessments
+
+Append-only per-theme as-of assessments containing:
+
+- evidence summary;
+- genuine uncertainty;
+- falsification conditions;
+- structural bottlenecks;
+- quality exposures;
+- narrative-only beneficiaries;
+- current-portfolio coverage;
+- possible new positions;
+- top source IDs;
+- source/counter-thesis counts;
+- insufficient-evidence flag.
+
+### investment_recommendations
+
+Append-only advisory records:
+
+- increase/hold/reduce/exit/consider/avoid;
+- ticker/company;
+- role in thesis;
+- sourced/timestamped price context;
+- entry zone/invalidation level where evidence supports them;
+- structural thesis/catalyst/risks;
+- correlation context;
+- core/aggressive/none sleeve;
+- valuation/competitive position/capital intensity/cash generation/balance sheet/downside analyses;
+- evidence-quality score;
+- deterministic technical-gate status/details.
+
+These records are advisory and never create an execution path.
