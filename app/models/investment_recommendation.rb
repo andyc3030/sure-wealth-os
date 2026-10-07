@@ -4,6 +4,7 @@ class InvestmentRecommendation < ApplicationRecord
   ACTIONS = %w[increase hold reduce exit consider avoid].freeze
   SLEEVES = %w[core aggressive_scenario].freeze
   STATUSES = %w[draft reviewable reviewed rejected expired].freeze
+  PORTFOLIO_STATUSES = %w[existing missing unknown].freeze
 
   belongs_to :research_run
   belongs_to :security, optional: true
@@ -20,10 +21,14 @@ class InvestmentRecommendation < ApplicationRecord
   validates :action, inclusion: { in: ACTIONS }
   validates :sleeve, inclusion: { in: SLEEVES }
   validates :status, inclusion: { in: STATUSES }
+  validates :portfolio_status, inclusion: { in: PORTFOLIO_STATUSES }
   validates :confidence,
             numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 },
             allow_nil: true
   validates :price_currency, length: { is: 3 }, allow_nil: true
+  validates :current_weight_pct, :proposed_weight_pct,
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 },
+            allow_nil: true
   validate :price_provenance_complete
   validate :entry_zone_order
 
