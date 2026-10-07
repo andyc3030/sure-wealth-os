@@ -13,10 +13,10 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
       t.string :event_key, null: false, limit: 255
       t.string :income_type, null: false
       t.string :state, null: false
-      t.decimal :amount, precision: 19, scale: 4, null: false
+      t.decimal :amount, precision: 19, scale: 4
       t.decimal :cash_amount, precision: 19, scale: 4
-      t.decimal :tax_withheld, precision: 19, scale: 4, null: false, default: 0
-      t.decimal :fees, precision: 19, scale: 4, null: false, default: 0
+      t.decimal :tax_withheld, precision: 19, scale: 4
+      t.decimal :fees, precision: 19, scale: 4
       t.string :currency, null: false, limit: 3
       t.date :effective_date, null: false
       t.date :declared_on
@@ -40,10 +40,10 @@ class CreateWealthOsAccountingEngines < ActiveRecord::Migration[8.1]
     add_index :income_events, [ :family_id, :state, :effective_date ], name: "idx_income_events_reporting"
     add_index :income_events, :supersedes_id, unique: true, where: "supersedes_id IS NOT NULL", name: "idx_income_events_one_successor"
 
-    add_check_constraint :income_events, "amount >= 0", name: "chk_income_events_amount_non_negative"
+    add_check_constraint :income_events, "amount IS NULL OR amount >= 0", name: "chk_income_events_amount_non_negative"
     add_check_constraint :income_events, "cash_amount IS NULL OR cash_amount >= 0", name: "chk_income_events_cash_non_negative"
-    add_check_constraint :income_events, "tax_withheld >= 0", name: "chk_income_events_tax_non_negative"
-    add_check_constraint :income_events, "fees >= 0", name: "chk_income_events_fees_non_negative"
+    add_check_constraint :income_events, "tax_withheld IS NULL OR tax_withheld >= 0", name: "chk_income_events_tax_non_negative"
+    add_check_constraint :income_events, "fees IS NULL OR fees >= 0", name: "chk_income_events_fees_non_negative"
 
     create_table :liability_payments, id: :uuid do |t|
       t.references :family, type: :uuid, null: false, foreign_key: { on_delete: :cascade }
