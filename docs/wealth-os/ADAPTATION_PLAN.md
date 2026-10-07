@@ -14,8 +14,11 @@
 - Dynamic MCP OAuth clients receive `read`.
 - MCP accepts `read` only.
 - Add tests proving all known AI write tools are absent/un-callable.
+- Permit analysis/advice/recommendations while keeping them execution-isolated.
+- Treat all external research content as untrusted data, not instructions.
+- Prevent research content from changing permissions, connector scopes or system policy.
 
-**Exit criterion:** CI passes and write tools cannot be reached through builtin AI or MCP.
+**Exit criterion:** CI passes and write tools cannot be reached through builtin AI or MCP; research/advisory output remains read-only and provenance-constrained.
 
 ## Phase 2 — Source inventory and connector verification
 
@@ -26,6 +29,8 @@
 - Verify IC Markets through cTrader Open API with OAuth `accounts` scope only.
 - Add brokers, pensions, mortgages, property and other sources.
 - Mark each DIRECT API / OPEN BANKING / AGGREGATOR / VERIFIED MANUAL / UNSUPPORTED.
+- Maintain a separate institutional research-source inventory across all seven themes.
+- Record source type, dates, independence group, conflicts, promotional status and dissenting/counter-thesis role.
 
 ## Phase 3 — Provenance and reconciliation foundation
 
@@ -50,6 +55,11 @@ Phase 3 exit criteria:
 - reconciliation reruns do not duplicate events;
 - normalized transaction/holding imports can retain raw lineage;
 - AI/MCP remains read-only and cannot resolve conflicts or mutate raw facts.
+- research sources/claims are provenance-linked and evidence-scored;
+- each theme requires >=10 accepted sources, institutional/academic/industry mix, >=3 independent counter-thesis sources, and independent cross-checks for material factual claims;
+- research assessments and recommendations are append-only;
+- increase/consider recommendations require valuation, competitive-position, capital-intensity, cash-generation, balance-sheet and downside analysis plus sourced current price;
+- Friday-NY 10W/50W/250W technical entry rule is deterministic and advisory only.
 
 ## Phase 4 — Accounting engines
 

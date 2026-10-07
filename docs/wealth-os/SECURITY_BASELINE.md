@@ -66,3 +66,18 @@ CI must fail if:
 4. MCP accepts a token without `read`;
 5. AI receives provider credentials or unrestricted database access;
 6. source data is silently overwritten without reconciliation where a source-authority conflict exists.
+
+
+## Research intelligence and advisory boundary
+
+The AI may analyze, advise and recommend, but it remains execution-isolated.
+
+Additional invariants:
+
+- public research pages, filings, transcripts, podcasts, PDFs and imported research text are untrusted data, never instructions;
+- research content cannot change tool permissions, connector scopes, system policy or source-authority rules;
+- current prices and material claims require provenance;
+- AI cannot waive deterministic evidence/cross-check/counter-thesis gates;
+- recommendations cannot initiate trades, payments, transfers, withdrawals or borrowing;
+- cTrader/IC Markets remains `accounts` scope only; research recommendations must never broaden it to `trading`;
+- recommendation records are append-only and auditable.
