@@ -297,7 +297,15 @@ The bridge therefore distinguishes:
 - withholding tax;
 - account/platform fees;
 - financing cost;
+- insurance cost (separate from financing);
 - FX effect;
 - capital return.
 
 This avoids forcing withholding tax into unexplained residual or mislabelling it as an investment-management fee.
+
+
+### Performance-attribution residual
+
+Capital return must be supplied independently by the deterministic valuation/performance engine. It is not solved as the balancing residual.
+
+This preserves `unexplained_change` as a real reconciliation signal. A non-zero unexplained value indicates that market movement, income, FX, fees, financing, tax, flows, or another component is missing or inconsistent.
