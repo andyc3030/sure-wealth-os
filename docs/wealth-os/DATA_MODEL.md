@@ -119,6 +119,7 @@ Important columns:
 - canonical key;
 - state and income type;
 - gross / withholding / fee amounts;
+- actual cash received amount;
 - native currency;
 - expected/accrual/declaration/payable/received dates;
 - confidence;
@@ -144,7 +145,7 @@ Database and model rules both require the payment components to equal the total.
 
 ## corporate_actions
 
-Immutable corporate-action source/accounting facts with:
+Corporate-action source/accounting facts with audited lifecycle status transitions and immutable economic terms:
 
 - affected security;
 - optional account and successor security;
@@ -153,7 +154,11 @@ Immutable corporate-action source/accounting facts with:
 - action type;
 - source lineage.
 
-Phase 4 deliberately does not mutate holdings from these records.
+## corporate_action_transitions
+
+Append-only audit history for corporate-action status progression.
+
+Only validated/applied/reconciled split and reverse-split actions are consumed by holding reconstruction; unsupported action types remain non-mutating.
 
 ## Performance services
 
