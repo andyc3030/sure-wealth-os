@@ -272,7 +272,9 @@ Accounting records also inherit Phase 3 raw-source lineage checks:
 - raw evidence must belong to the same family;
 - when a raw record is account-scoped, it must match the accounting record's account.
 
-### Scheduled liability idempotency
+### Liability decomposition immutability and scheduled idempotency
+
+Liability payment decompositions are append-only accounting records. Corrections create a new record/evidence path rather than rewriting an existing principal/interest/fee split.
 
 Scheduled amortization decomposition is rerun-safe.
 
