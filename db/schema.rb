@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -719,6 +719,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "plaid_id"
     t.datetime "reconciled_at"
     t.uuid "reconciled_by_statement_id"
+    t.uuid "raw_source_record_id"
     t.string "source"
     t.datetime "updated_at", null: false
     t.boolean "user_modified", default: false, null: false
@@ -735,6 +736,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["import_id"], name: "index_entries_on_import_id"
     t.index ["import_locked"], name: "index_entries_on_import_locked_true", where: "(import_locked = true)"
     t.index ["parent_entry_id"], name: "index_entries_on_parent_entry_id"
+    t.index ["raw_source_record_id"], name: "index_entries_on_raw_source_record_id"
     t.index ["reconciled_by_statement_id"], name: "index_entries_on_reconciled_by_statement", where: "(reconciled_by_statement_id IS NOT NULL)"
     t.index ["user_modified"], name: "index_entries_on_user_modified_true", where: "(user_modified = true)"
     t.check_constraint "reconciled_by_statement_id IS NULL OR reconciled_at IS NOT NULL", name: "chk_entries_reconciled_at_present_when_statement_set"
@@ -1185,6 +1187,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "external_id"
     t.decimal "price", precision: 19, scale: 4, null: false
     t.uuid "provider_security_id"
+    t.uuid "raw_source_record_id"
     t.decimal "qty", precision: 34, scale: 18, null: false
     t.uuid "security_id", null: false
     t.boolean "security_locked", default: false, null: false
@@ -1194,6 +1197,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["account_id"], name: "index_holdings_on_account_id"
     t.index ["account_provider_id"], name: "index_holdings_on_account_provider_id"
     t.index ["provider_security_id"], name: "index_holdings_on_provider_security_id"
+    t.index ["raw_source_record_id"], name: "index_holdings_on_raw_source_record_id"
     t.index ["security_id"], name: "index_holdings_on_security_id"
   end
 
@@ -2921,6 +2925,126 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["status"], name: "index_wise_items_on_status"
   end
 
+  create_table "raw_source_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.uuid "account_provider_id"
+    t.datetime "created_at", null: false
+    t.datetime "effective_at"
+    t.uuid "family_id", null: false
+    t.string "idempotency_key", limit: 255
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "observed_at", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.string "payload_sha256", limit: 64, null: false
+    t.string "record_type", null: false
+    t.integer "schema_version", default: 1, null: false
+    t.string "source_key", limit: 255, null: false
+    t.string "source_system", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_raw_source_records_on_account_id"
+    t.index ["account_provider_id"], name: "index_raw_source_records_on_account_provider_id"
+    t.index ["family_id", "source_system", "idempotency_key"], name: "idx_raw_source_records_idempotency", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index ["family_id"], name: "index_raw_source_records_on_family_id"
+  end
+
+  create_table "reconciliation_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.uuid "account_provider_id"
+    t.jsonb "actual", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3
+    t.string "dedupe_key", limit: 255
+    t.jsonb "details", default: {}, null: false
+    t.jsonb "difference", default: {}, null: false
+    t.jsonb "expected", default: {}, null: false
+    t.uuid "family_id", null: false
+    t.string "kind", null: false
+    t.boolean "material", default: false, null: false
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "status", null: false
+    t.uuid "subject_id"
+    t.string "subject_type"
+    t.decimal "tolerance", precision: 19, scale: 8
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_reconciliation_events_on_account_id"
+    t.index ["account_provider_id"], name: "index_reconciliation_events_on_account_provider_id"
+    t.index ["family_id", "dedupe_key"], name: "idx_reconciliation_events_dedupe", unique: true, where: "(dedupe_key IS NOT NULL)"
+    t.index ["family_id", "status", "occurred_at"], name: "idx_reconciliation_events_status"
+    t.index ["family_id"], name: "index_reconciliation_events_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_reconciliation_events_on_raw_source_record_id"
+    t.index ["subject_type", "subject_id"], name: "index_reconciliation_events_on_subject"
+  end
+
+  create_table "source_authority_rules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "field_name", null: false
+    t.text "notes"
+    t.integer "priority", null: false
+    t.string "record_type", null: false
+    t.string "source_system", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "record_type", "field_name", "source_system"], name: "idx_source_authority_rules_unique", unique: true
+    t.index ["family_id"], name: "index_source_authority_rules_on_family_id"
+    t.check_constraint "priority >= 0", name: "chk_source_authority_rules_priority"
+  end
+
+  create_table "source_conflicts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.string "currency", limit: 3
+    t.datetime "created_at", null: false
+    t.datetime "detected_at", null: false
+    t.uuid "family_id", null: false
+    t.string "field_name", null: false
+    t.decimal "impact_amount", precision: 19, scale: 4
+    t.datetime "resolved_at"
+    t.string "resolution_rule"
+    t.uuid "selected_source_record_id"
+    t.uuid "source_record_a_id", null: false
+    t.uuid "source_record_b_id", null: false
+    t.string "status", default: "open", null: false
+    t.uuid "subject_id"
+    t.string "subject_type"
+    t.datetime "updated_at", null: false
+    t.jsonb "value_a"
+    t.jsonb "value_b"
+    t.index ["account_id"], name: "index_source_conflicts_on_account_id"
+    t.index ["family_id", "status", "field_name"], name: "idx_source_conflicts_open_work"
+    t.index ["family_id"], name: "index_source_conflicts_on_family_id"
+    t.index ["selected_source_record_id"], name: "index_source_conflicts_on_selected_source_record_id"
+    t.index ["source_record_a_id", "source_record_b_id", "field_name", "status"], name: "idx_source_conflicts_pair"
+    t.index ["source_record_a_id", "source_record_b_id", "field_name"], name: "idx_source_conflicts_unique_pair", unique: true
+    t.index ["source_record_a_id"], name: "index_source_conflicts_on_source_record_a_id"
+    t.index ["source_record_b_id"], name: "index_source_conflicts_on_source_record_b_id"
+    t.index ["subject_type", "subject_id"], name: "index_source_conflicts_on_subject"
+    t.check_constraint "source_record_a_id <> source_record_b_id", name: "chk_source_conflicts_distinct_records"
+  end
+
+  create_table "source_identities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "canonical_id", null: false
+    t.string "canonical_type", null: false
+    t.decimal "confidence", precision: 5, scale: 4, default: "1.0", null: false
+    t.datetime "created_at", null: false
+    t.string "entity_type", null: false
+    t.string "external_id", null: false
+    t.uuid "family_id", null: false
+    t.uuid "raw_source_record_id"
+    t.string "source_system", null: false
+    t.uuid "supersedes_id"
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.index ["canonical_type", "canonical_id"], name: "idx_source_identities_canonical"
+    t.index ["family_id", "source_system", "entity_type", "external_id"], name: "idx_source_identities_unique_root", unique: true, where: "(supersedes_id IS NULL)"
+    t.index ["supersedes_id"], name: "idx_source_identities_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
+    t.index ["family_id", "source_system", "entity_type", "external_id", "created_at"], name: "idx_source_identities_lookup"
+    t.index ["family_id"], name: "index_source_identities_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_source_identities_on_raw_source_record_id"
+    t.index ["supersedes_id"], name: "index_source_identities_on_supersedes_id"
+    t.check_constraint "confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_source_identities_confidence"
+  end
+
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
   add_foreign_key "account_shares", "accounts"
   add_foreign_key "account_shares", "users"
@@ -2968,6 +3092,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "entries", "accounts", on_delete: :cascade
   add_foreign_key "entries", "entries", column: "parent_entry_id", on_delete: :cascade
   add_foreign_key "entries", "imports"
+  add_foreign_key "entries", "raw_source_records", on_delete: :nullify
   add_foreign_key "eval_results", "eval_runs"
   add_foreign_key "eval_results", "eval_samples"
   add_foreign_key "eval_runs", "eval_datasets"
@@ -3007,6 +3132,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "holdings", "accounts", on_delete: :cascade
   add_foreign_key "holdings", "securities"
   add_foreign_key "holdings", "securities", column: "provider_security_id"
+  add_foreign_key "holdings", "raw_source_records", on_delete: :nullify
   add_foreign_key "ibkr_accounts", "ibkr_items"
   add_foreign_key "ibkr_items", "families"
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"
@@ -3107,4 +3233,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "webauthn_credentials", "users"
   add_foreign_key "wise_accounts", "wise_items", on_delete: :cascade
   add_foreign_key "wise_items", "families"
+  add_foreign_key "raw_source_records", "account_providers", on_delete: :nullify
+  add_foreign_key "raw_source_records", "accounts", on_delete: :nullify
+  add_foreign_key "raw_source_records", "families", on_delete: :cascade
+  add_foreign_key "reconciliation_events", "account_providers", on_delete: :nullify
+  add_foreign_key "reconciliation_events", "accounts", on_delete: :nullify
+  add_foreign_key "reconciliation_events", "families", on_delete: :cascade
+  add_foreign_key "reconciliation_events", "raw_source_records", on_delete: :nullify
+  add_foreign_key "source_authority_rules", "families", on_delete: :cascade
+  add_foreign_key "source_conflicts", "accounts", on_delete: :nullify
+  add_foreign_key "source_conflicts", "families", on_delete: :cascade
+  add_foreign_key "source_conflicts", "raw_source_records", column: "selected_source_record_id", on_delete: :nullify
+  add_foreign_key "source_conflicts", "raw_source_records", column: "source_record_a_id"
+  add_foreign_key "source_conflicts", "raw_source_records", column: "source_record_b_id"
+  add_foreign_key "source_identities", "families", on_delete: :cascade
+  add_foreign_key "source_identities", "raw_source_records", on_delete: :nullify
+  add_foreign_key "source_identities", "source_identities", column: "supersedes_id", on_delete: :nullify
+
 end

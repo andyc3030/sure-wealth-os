@@ -29,12 +29,27 @@
 
 ## Phase 3 — Provenance and reconciliation foundation
 
-- immutable raw source records;
-- normalized source records;
-- field-level source authority;
-- conflict records;
-- duplicate/entity resolution;
-- account/position/cash reconciliation.
+Implemented foundation:
+
+- immutable/idempotent `RawSourceRecord` source facts;
+- normalized Entry/Holding → raw lineage;
+- versioned `SourceIdentity` mappings for entity resolution;
+- field-level `SourceAuthorityRule` precedence;
+- auditable `SourceConflict` records;
+- append-only, dedupe-safe `ReconciliationEvent` outcomes;
+- deterministic numeric reconciliation comparator;
+- cross-family/account lineage validation.
+
+Phase 3 exit criteria:
+
+- migrations and all tests pass;
+- identical raw source content is idempotent;
+- changed source facts create new immutable versions;
+- missing authority rules fail loudly;
+- conflicting sources create OPEN conflict records;
+- reconciliation reruns do not duplicate events;
+- normalized transaction/holding imports can retain raw lineage;
+- AI/MCP remains read-only and cannot resolve conflicts or mutate raw facts.
 
 ## Phase 4 — Accounting engines
 
