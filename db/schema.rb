@@ -3016,6 +3016,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.string "currency", limit: 3, null: false
     t.date "declared_on"
     t.date "effective_date", null: false
+    t.uuid "entry_id"
     t.string "event_key", limit: 255, null: false
     t.date "ex_date"
     t.uuid "family_id", null: false
@@ -3032,6 +3033,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
     t.decimal "tax_withheld", precision: 19, scale: 4, default: "0.0", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_income_events_on_account_id"
+    t.index ["entry_id"], name: "index_income_events_on_entry_id"
     t.index ["family_id", "event_key", "created_at"], name: "idx_income_events_lifecycle"
     t.index ["family_id", "event_key"], name: "idx_income_events_unique_root", unique: true, where: "(supersedes_id IS NULL)"
     t.index ["family_id", "state", "effective_date"], name: "idx_income_events_reporting"
@@ -3343,6 +3345,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100000) do
   add_foreign_key "corporate_actions", "securities", on_delete: :cascade
   add_foreign_key "corporate_actions", "securities", column: "successor_security_id", on_delete: :nullify
   add_foreign_key "income_events", "accounts", on_delete: :nullify
+  add_foreign_key "income_events", "entries", on_delete: :nullify
   add_foreign_key "income_events", "families", on_delete: :cascade
   add_foreign_key "income_events", "income_events", column: "supersedes_id", on_delete: :nullify
   add_foreign_key "income_events", "raw_source_records", on_delete: :nullify
