@@ -56,10 +56,12 @@ Phase 3 exit criteria:
 Implemented deterministic foundation:
 
 - audited four-state income ledger: forecast / accrued / declared / received;
-- gross / withholding / fee / net income separation;
+- gross / withholding / fee / net income plus separately stored actual cash received;
+- idempotent projection of booked Dividend/Interest transactions into RECEIVED income;
 - immutable actual/scheduled liability-payment decomposition;
 - principal vs interest/fees/insurance accounting;
-- immutable corporate-action source records and split/reverse-split cost-preserving math;
+- audited corporate-action lifecycle and split/reverse-split cost-preserving math;
+- validated split-aware forward/reverse holding reconstruction without synthetic trades;
 - exact chain-linked TWR engine;
 - Modified Dietz fallback for periods without flow-boundary valuations;
 - existing XIRR/MWR retained and reported separately from TWR;
@@ -73,6 +75,7 @@ Phase 4 exit criteria:
 - income lifecycle cannot double-count current event state;
 - backward income transitions are rejected and revisions are audited;
 - debt payment components exactly equal total payment;
+- scheduled liability decomposition is idempotent and reuses Sure's amortization schedule;
 - £/$2,000 payment fixture with 1,250 principal + 700 interest + 50 fees reports 750 financing cost;
 - split math preserves total cost;
 - TWR and Modified Dietz golden fixtures pass;
