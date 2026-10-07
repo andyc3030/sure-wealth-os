@@ -62,9 +62,9 @@ class SnaptradeAccount::ActivitiesProcessor
     "TAX" => { category: :cash, label: "Fee", cash_flow: :outflow },
     "CASH" => { category: :cash, label: "Contribution", cash_flow: :inflow },
     "REBATE" => { category: :cash, label: "Other", cash_flow: :inflow },
-    "RETURN_OF_CAPITAL" => { category: :cash, label: "Dividend", cash_flow: :inflow },
-    "DISTRIBUTION" => { category: :cash, label: "Dividend", cash_flow: :inflow },
-    "SUBSTITUTE_DIVIDEND" => { category: :cash, label: "Dividend", cash_flow: :inflow },
+    "RETURN_OF_CAPITAL" => { category: :cash, label: "Return of Capital", cash_flow: :inflow },
+    "DISTRIBUTION" => { category: :cash, label: "Distribution", cash_flow: :inflow },
+    "SUBSTITUTE_DIVIDEND" => { category: :cash, label: "Substitute Dividend", cash_flow: :inflow },
     "JOURNAL" => { category: :cash, label: "Other" },
     "OTHER" => { category: :cash, label: "Other" }
   }.freeze
