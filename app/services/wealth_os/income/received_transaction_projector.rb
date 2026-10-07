@@ -31,6 +31,7 @@ module WealthOs
         attrs = {
           account: entry.account,
           security: transaction.activity_security,
+          entry: entry,
           raw_source_record: entry.raw_source_record,
           amount: entry.amount.to_d.abs,
           cash_amount: entry.amount.to_d.abs,
@@ -47,6 +48,7 @@ module WealthOs
           unchanged = current.state == "received" &&
                       current.account_id == attrs[:account].id &&
                       current.security_id == attrs[:security]&.id &&
+                      current.entry_id == entry.id &&
                       current.raw_source_record_id == attrs[:raw_source_record]&.id &&
                       current.amount.to_d == attrs[:amount] &&
                       current.cash_amount.to_d == attrs[:cash_amount] &&
