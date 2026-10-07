@@ -53,12 +53,33 @@ Phase 3 exit criteria:
 
 ## Phase 4 — Accounting engines
 
-- received/accrued/declared/forecast income;
-- liability principal/interest/fees;
-- corporate actions;
-- TWR alongside MWR;
-- capital/income/FX return;
-- change-in-net-worth attribution.
+Implemented deterministic foundation:
+
+- audited four-state income ledger: forecast / accrued / declared / received;
+- gross / withholding / fee / net income separation;
+- immutable actual/scheduled liability-payment decomposition;
+- principal vs interest/fees/insurance accounting;
+- immutable corporate-action source records and split/reverse-split cost-preserving math;
+- exact chain-linked TWR engine;
+- Modified Dietz fallback for periods without flow-boundary valuations;
+- existing XIRR/MWR retained and reported separately from TWR;
+- local-market vs FX attribution;
+- capital / income / FX / fee / financing return attribution;
+- deterministic change-in-net-worth bridge with visible residual.
+
+Phase 4 exit criteria:
+
+- database and model accounting constraints agree;
+- income lifecycle cannot double-count current event state;
+- backward income transitions are rejected and revisions are audited;
+- debt payment components exactly equal total payment;
+- £/$2,000 payment fixture with 1,250 principal + 700 interest + 50 fees reports 750 financing cost;
+- split math preserves total cost;
+- TWR and Modified Dietz golden fixtures pass;
+- MWR continues to use the existing XIRR implementation;
+- FX and return attribution components exactly reconcile to total change;
+- net-worth bridge leaves material unexplained changes visible;
+- AI/MCP remains read-only.
 
 ## Phase 5 — Authoritative daily close
 
