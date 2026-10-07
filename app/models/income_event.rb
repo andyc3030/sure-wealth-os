@@ -29,12 +29,12 @@ class IncomeEvent < ApplicationRecord
   belongs_to :supersedes, class_name: "IncomeEvent", optional: true
   has_one :successor, class_name: "IncomeEvent", foreign_key: :supersedes_id
 
-  validates :event_key, :income_type, :state, :amount, :currency, :effective_date, presence: true
+  validates :event_key, :income_type, :state, :currency, :effective_date, presence: true
   validates :income_type, inclusion: { in: TYPES }
   validates :state, inclusion: { in: STATES }
   validates :confidence, inclusion: { in: CONFIDENCE_LEVELS }
-  validates :amount, :tax_withheld, :fees, numericality: { greater_than_or_equal_to: 0 }
-  validates :cash_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :amount, :tax_withheld, :fees, :cash_amount,
+            numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :currency, length: { is: 3 }
   validates :event_key,
             uniqueness: {
@@ -47,6 +47,7 @@ class IncomeEvent < ApplicationRecord
   validate :superseded_event_matches_identity
   validate :state_transition_is_allowed
   validate :accrued_state_matches_income_type
+  validate :amount_required_before_received
   validate :received_cash_reconciles
   validate :cash_amount_only_when_received
   validate :entry_matches_income_account
@@ -107,7 +108,7 @@ class IncomeEvent < ApplicationRecord
   def received_cash
     return BigDecimal("0") unless state == "received"
 
-    (cash_amount || (amount - tax_withheld - fees)).to_d
+    cash_amount.to_d
   end
 
   private
@@ -158,6 +159,12 @@ class IncomeEvent < ApplicationRecord
       errors.add(:state, "cannot transition from #{supersedes.state} to #{state}")
     end
 
+    def amount_required_before_received
+      return if state == "received" || amount.present?
+
+      errors.add(:amount, "is required before income is received")
+    end
+
     def cash_amount_only_when_received
       return if cash_amount.nil? || state == "received"
 
@@ -183,14 +190,33 @@ class IncomeEvent < ApplicationRecord
     def received_cash_reconciles
       return unless state == "received"
 
-      calculated_cash = amount.to_d - tax_withheld.to_d - fees.to_d
-      if calculated_cash.negative?
-        errors.add(:base, "tax withheld plus fees cannot exceed gross income")
+      if cash_amount.nil?
+        errors.add(:cash_amount, "is required for received income")
         return
       end
 
-      return if cash_amount.nil?
-      return if (cash_amount.to_d - calculated_cash).abs <= CASH_RECONCILIATION_TOLERANCE
+      if amount.nil?
+        if tax_withheld.present? || fees.present?
+          errors.add(:amount, "is required when withholding tax or fees are known")
+        end
+        return
+      end
+
+      known_deductions = [ tax_withheld, fees ].compact.sum(BigDecimal("0")) { |value| value.to_d }
+      maximum_cash = amount.to_d - known_deductions
+
+      if maximum_cash.negative?
+        errors.add(:base, "known withholding tax plus fees cannot exceed gross income")
+        return
+      end
+
+      if cash_amount.to_d > maximum_cash + CASH_RECONCILIATION_TOLERANCE
+        errors.add(:cash_amount, "cannot exceed gross income less known deductions")
+        return
+      end
+
+      return unless tax_withheld.present? && fees.present?
+      return if (cash_amount.to_d - maximum_cash).abs <= CASH_RECONCILIATION_TOLERANCE
 
       errors.add(:cash_amount, "must equal gross income minus withholding tax and fees")
     end
