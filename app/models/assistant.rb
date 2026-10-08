@@ -16,13 +16,19 @@ module Assistant
     Function::GetHoldings,
     Function::GetBalanceSheet,
     Function::GetIncomeStatement,
-    Function::GetAuthoritativeDailyClose,
-    Function::GetAuthoritativeMetricProvenance,
     Function::GetBudget,
     Function::SearchFamilyFiles,
     Function::GetTags,
     Function::GetCategories,
     Function::GetMerchants
+  ].freeze
+
+  # Family-wide authoritative-close data is more privileged than ordinary
+  # account reads because Sure supports per-account sharing inside a family.
+  # These tools are therefore exposed only to family administrators.
+  ADMIN_ONLY_READ_FUNCTION_CLASSES = [
+    Function::GetAuthoritativeDailyClose,
+    Function::GetAuthoritativeMetricProvenance
   ].freeze
 
   # Preview reads remain gated by the user's preview preference. Write-capable
@@ -59,6 +65,9 @@ module Assistant
     # be rejected by the Wealth OS regression tests.
     def function_classes(user = nil)
       classes = READ_ONLY_FUNCTION_CLASSES.dup
+      if WealthOs::Dashboard::AccessPolicy.allowed?(user: user, family: user&.family)
+        classes += ADMIN_ONLY_READ_FUNCTION_CLASSES
+      end
       classes += PREVIEW_FUNCTION_CLASSES if user&.preview_features_enabled?
       classes
     end
