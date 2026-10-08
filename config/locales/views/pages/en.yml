@@ -62,6 +62,8 @@ en:
         compact: "Compact"
         auto: "Auto"
         tall: "Tall"
+      wealth_os_summary:
+        title: "Authoritative Close"
       net_worth_chart:
         data_not_available: Data not available for the selected period
         title: Net Worth
