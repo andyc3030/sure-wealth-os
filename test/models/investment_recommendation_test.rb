@@ -1,4 +1,4 @@
-<sub>require "test_helper"
+require "test_helper"
 
 class InvestmentRecommendationTest < ActiveSupport::TestCase
   setup do
@@ -153,4 +153,3 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
     assert_includes recommendation.errors[:base], "investment recommendations are append-only; create a new recommendation version"
   end
 end
-</sub>
