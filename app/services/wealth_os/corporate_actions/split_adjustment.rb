@@ -15,14 +15,17 @@ module WealthOs
         raise ArgumentError, "split denominator must be positive" unless den.positive?
         raise ArgumentError, "unit cost must be non-negative" if cost.negative?
 
+        # Preserve exact rational arithmetic for common integer split ratios.
+        # Calculating num / den first can introduce a repeating BigDecimal
+        # approximation (for example 1/3), which then leaks into quantities.
+        adjusted_quantity = (qty * num) / den
+        adjusted_unit_cost = (cost * den) / num
         ratio = num / den
-        adjusted_quantity = qty * ratio
-        adjusted_unit_cost = cost / ratio
 
         Result.new(
           adjusted_quantity,
           adjusted_unit_cost,
-          adjusted_quantity * adjusted_unit_cost,
+          qty * cost,
           ratio
         )
       end
