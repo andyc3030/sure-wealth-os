@@ -602,7 +602,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
     t.index ["enrichable_type", "enrichable_id"], name: "index_data_enrichments_on_enrichable"
   end
 
-
   create_table "daily_close_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "closed_at", null: false
     t.date "close_date", null: false
