@@ -40,9 +40,6 @@ module WealthOs
       end
 
       def call
-        existing = DailyCloseSnapshot.find_by(family_id: family.id, close_date: close_date)
-        return existing if existing
-
         cutoff_at = Configuration.cutoff_at(close_date, timezone: timezone)
         raise CutoffNotReached, "daily close cut-off has not been reached" if now < cutoff_at
         raise SyncInProgress, "provider/account sync is still in progress" if Sync.any_incomplete_for?(family)
