@@ -102,9 +102,11 @@ Mandatory security instructions require the assistant to:
 
 ## Access control
 
-The provenance controller looks up snapshots by both the requested snapshot ID and `Current.family.id`.
+An authoritative close is family-wide. Sure also supports per-account sharing, so exposing a family-wide snapshot to an ordinary family member could reveal accounts they cannot otherwise access.
 
-A valid snapshot ID belonging to another family is therefore returned as not found.
+Phase 6 therefore restricts the family-wide authoritative dashboard, provenance page and authoritative AI tools to family administrators. The provenance controller also looks up snapshots by both the requested snapshot ID and `Current.family.id`.
+
+Unauthorized same-family members and valid snapshot IDs belonging to another family are returned as unavailable/not found rather than revealing resource existence.
 
 ## Exit gate
 
