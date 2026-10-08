@@ -52,10 +52,16 @@ class Assistant::Function::GetInvestmentRecommendations < Assistant::Function
     ticker = params["ticker"].presence
 
     if theme && !ResearchSource::THEMES.include?(theme)
-      return { "error" => "unsupported_research_theme", "hint" => "Choose one of: #{ResearchSource::THEMES.join(", ")}" }
+      return {
+        "error" => "unsupported_research_theme",
+        "hint" => "Choose one of: #{ResearchSource::THEMES.join(", ")}"
+      }
     end
     if action && !InvestmentRecommendation::ACTIONS.include?(action)
-      return { "error" => "unsupported_recommendation_action", "hint" => "Choose one of: #{InvestmentRecommendation::ACTIONS.join(", ")}" }
+      return {
+        "error" => "unsupported_recommendation_action",
+        "hint" => "Choose one of: #{InvestmentRecommendation::ACTIONS.join(", ")}"
+      }
     end
 
     scope = InvestmentRecommendation.where(family_id: family.id).includes(:research_assessment)
