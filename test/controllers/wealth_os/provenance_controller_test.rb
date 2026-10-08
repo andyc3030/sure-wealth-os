@@ -18,6 +18,15 @@ class WealthOs::ProvenanceControllerTest < ActionDispatch::IntegrationTest
     assert_select "pre", minimum: 1
   end
 
+  test "returns not found to a non-admin member of the same family" do
+    snapshot = create_snapshot(@family, Date.new(2026, 10, 14))
+    sign_in users(:family_member)
+
+    get wealth_os_snapshot_provenance_path(snapshot_id: snapshot.id, metric: "net_worth")
+
+    assert_response :not_found
+  end
+
   test "returns not found for another family's snapshot" do
     other_family = Family.where.not(id: @family.id).first
     skip "fixture requires a second family" unless other_family
