@@ -122,8 +122,7 @@ module WealthOs
               "syncable_id" => sync.syncable_id, "status" => sync.status,
               "created_at" => sync.created_at.iso8601,
               "completed_at" => sync.completed_at&.iso8601,
-              "failed_at" => sync.failed_at&.iso8601,
-              "stale_at" => sync.stale_at&.iso8601
+              "failed_at" => sync.failed_at&.iso8601
             }
           end
         end
