@@ -35,6 +35,13 @@ class Assistant::Function::GetAuthoritativeDailyClose < Assistant::Function
   end
 
   def call(params = {})
+    unless WealthOs::Dashboard::AccessPolicy.allowed?(user: user, family: family)
+      return {
+        "error" => "authoritative_close_not_available",
+        "hint" => "Family-wide authoritative close data is available to family administrators."
+      }
+    end
+
     snapshot = resolve_snapshot(params["close_date"])
     return no_snapshot_result(params["close_date"]) unless snapshot
 
