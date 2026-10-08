@@ -33,6 +33,48 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
     assert recommendation.errors[:allocation_sleeve].present?
   end
 
+  test "insufficient-evidence assessment blocks increase or consider" do
+    insufficient = ResearchAssessment.create!(
+      family: @family,
+      theme: "ai_networking",
+      as_of_date: Date.current + 1.day,
+      methodology_version: "1.0",
+      evidence_summary: "Evidence is incomplete",
+      uncertainty: "Material uncertainty",
+      falsification_conditions: "More evidence required",
+      source_count: 4,
+      challenging_source_count: 1,
+      insufficient_evidence: true
+    )
+
+    recommendation = InvestmentRecommendation.new(
+      family: @family,
+      research_assessment: insufficient,
+      action: "consider",
+      ticker: "EXM",
+      company: "Example Networks",
+      reference_price: 100,
+      price_currency: "USD",
+      price_as_of: Time.current,
+      price_source: "authoritative market data",
+      structural_thesis: "Three-to-five-year thesis.",
+      near_term_catalyst: "Capacity deployment.",
+      principal_risks: [ "competition" ],
+      correlation_context: "Compared with existing technology holdings.",
+      allocation_sleeve: "aggressive",
+      valuation_analysis: "Valuation analysis.",
+      competitive_position_analysis: "Competitive analysis.",
+      capital_intensity_analysis: "Capital-intensity analysis.",
+      cash_generation_analysis: "Cash-generation analysis.",
+      balance_sheet_analysis: "Balance-sheet analysis.",
+      downside_analysis: "Downside analysis."
+    )
+
+    assert_not recommendation.valid?
+    assert_includes recommendation.errors[:research_assessment],
+      "has insufficient evidence for increase/consider recommendations"
+  end
+
   test "complete new capital recommendation is valid and append-only" do
     recommendation = InvestmentRecommendation.create!(
       family: @family,
