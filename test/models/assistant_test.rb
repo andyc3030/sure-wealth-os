@@ -8,6 +8,8 @@ class AssistantTest < ActiveSupport::TestCase
 
     assert_includes default_classes, Assistant::Function::GetMerchants
     assert_includes default_classes, Assistant::Function::GetRecurringTransactions
+    assert_includes default_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_includes default_classes, Assistant::Function::GetAuthoritativeMetricProvenance
     assert_not_includes default_classes, Assistant::Function::GetInsights
     assert_not_includes default_classes, Assistant::Function::GetValuations
 
