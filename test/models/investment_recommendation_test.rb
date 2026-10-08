@@ -21,14 +21,16 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
       family: @family,
       research_assessment: @assessment,
       action: "consider",
-      company: "Example Networks",
-      allocation_sleeve: "aggressive"
+      company: "Example Networks"
     )
 
     assert_not recommendation.valid?
     assert recommendation.errors[:valuation_analysis].present?
     assert recommendation.errors[:balance_sheet_analysis].present?
     assert recommendation.errors[:reference_price].present?
+    assert recommendation.errors[:near_term_catalyst].present?
+    assert recommendation.errors[:correlation_context].present?
+    assert recommendation.errors[:allocation_sleeve].present?
   end
 
   test "complete new capital recommendation is valid and append-only" do
