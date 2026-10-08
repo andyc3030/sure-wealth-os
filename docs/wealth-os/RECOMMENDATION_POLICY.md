@@ -88,3 +88,33 @@ Read-only AI explanation
 ```
 
 A failed EvidenceGate blocks high-conviction recommendations and requires an **INSUFFICIENT EVIDENCE** label.
+
+## Non-bypassable new-capital gate
+
+For `increase` and `consider`, model validation re-runs `WealthOs::Research::EvidenceGate` against the stored family research sources and claims for the assessment theme.
+
+A recommendation is rejected if:
+
+- the assessment is already marked insufficient evidence; or
+- the current stored source/claim set does not pass the deterministic EvidenceGate.
+
+Manually populated source counters or an optimistic assessment flag cannot substitute for the actual evidence gate.
+
+## Controlled AI consumption
+
+The assistant/MCP surface is read-only and family-admin scoped for family-wide research intelligence.
+
+AI may:
+
+- retrieve stored research assessments;
+- retrieve stored investment recommendations;
+- explain the stored action, evidence status, valuation/risk context and technical-gate state.
+
+AI may not:
+
+- invent a new product-specific recommendation;
+- strengthen or weaken a stored action;
+- bypass an insufficient-evidence result;
+- convert advice into execution.
+
+If no governed recommendation exists, the assistant must state that rather than fabricate a buy/sell view.
