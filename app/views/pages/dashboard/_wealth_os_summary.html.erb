@@ -96,8 +96,14 @@
           <% row = summary.cash_forecasts.fetch(days) %>
           <tr class="table-divider">
             <td class="px-3 py-3"><%= days %> days</td>
-            <td class="px-3 py-3 text-right privacy-sensitive"><%= money_for.call(row.fetch("income")) %></td>
-            <td class="px-3 py-3 text-right privacy-sensitive"><%= money_for.call(row.fetch("liability_payments")) %></td>
+            <td class="px-3 py-3 text-right">
+              <%= link_to money_for.call(row.fetch("income")), provenance_path.call("forecast_#{days}"),
+                  class: "privacy-sensitive hover:underline" %>
+            </td>
+            <td class="px-3 py-3 text-right">
+              <%= link_to money_for.call(row.fetch("liability_payments")), provenance_path.call("forecast_#{days}"),
+                  class: "privacy-sensitive hover:underline" %>
+            </td>
             <td class="px-3 py-3 text-right">
               <%= link_to money_for.call(row.fetch("net_cash")), provenance_path.call("forecast_#{days}"),
                   class: "font-medium privacy-sensitive hover:underline" %>
