@@ -285,6 +285,10 @@ class Account::ProviderImportAdapter
       entry.save!
       entry.transaction.save! if entry.transaction.changed?
 
+      # Project booked dividend/interest cash into the Wealth OS income lifecycle.
+      # The projector is idempotent and ignores non-income/pending transactions.
+      WealthOs::Income::ReceivedTransactionProjector.call(entry)
+
       # Auto-resolve any open Goal pledges on this account whose tolerance
       # window matches the posted transaction. Idempotent via the partial-unique
       # index on transactions.extra->'goal'->>'pledge_id'.

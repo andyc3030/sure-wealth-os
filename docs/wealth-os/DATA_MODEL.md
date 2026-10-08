@@ -100,3 +100,75 @@ The same lineage pattern can later be attached to:
 - daily snapshots.
 
 No new field should bypass source authority/reconciliation merely because it is added later.
+
+
+# Phase 4 additions
+
+## income_events
+
+Canonical income-event records with exactly one current state:
+
+- forecast;
+- accrued;
+- declared;
+- received.
+
+Important columns:
+
+- family/account/security/raw-source lineage;
+- canonical key;
+- state and income type;
+- gross / withholding / fee amounts;
+- actual cash received amount;
+- native currency;
+- expected/accrual/declaration/payable/received dates;
+- confidence;
+- source identifiers and metadata.
+
+## income_event_transitions
+
+Append-only audit history for every income-event creation/revision/state transition.
+
+## liability_payments
+
+Immutable debt-payment decomposition:
+
+- total;
+- principal;
+- interest;
+- fees;
+- insurance;
+- actual/scheduled type;
+- account/entry/raw-source lineage.
+
+Database and model rules both require the payment components to equal the total.
+
+## corporate_actions
+
+Corporate-action source/accounting facts with audited lifecycle status transitions and immutable economic terms:
+
+- affected security;
+- optional account and successor security;
+- effective date;
+- split ratio or cash amount where relevant;
+- action type;
+- source lineage.
+
+## corporate_action_transitions
+
+Append-only audit history for corporate-action status progression.
+
+Only validated/applied/reconciled split and reverse-split actions are consumed by holding reconstruction; unsupported action types remain non-mutating.
+
+## Performance services
+
+Performance remains deterministic service-layer calculation rather than mutable stored output at this phase:
+
+- `Portfolio::Twr`;
+- `Portfolio::ModifiedDietz`;
+- `WealthOs::Performance::PortfolioReturns`;
+- `WealthOs::Performance::FxAttribution`;
+- `WealthOs::Performance::ReturnAttribution`;
+- `WealthOs::Performance::NetWorthAttribution`.
+
+Daily immutable performance snapshots are deferred to the authoritative daily-close phase.

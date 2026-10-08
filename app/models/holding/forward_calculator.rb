@@ -1,5 +1,6 @@
 class Holding::ForwardCalculator
   include Holding::TradeCalculatorHelpers
+  include Holding::CorporateActionAdjustable
 
   attr_reader :account
 
@@ -22,8 +23,13 @@ class Holding::ForwardCalculator
       holdings = []
 
       account.start_date.upto(Date.current).each do |date|
+        opening_portfolio = apply_corporate_actions_forward(
+          current_portfolio,
+          date,
+          trackers: @cost_basis_trackers
+        )
         trades = portfolio_cache.get_trades(date: date)
-        next_portfolio = apply_trades(current_portfolio, trades)
+        next_portfolio = apply_trades(opening_portfolio, trades)
         holdings.concat(build_holdings(next_portfolio, date))
         current_portfolio = next_portfolio
       end

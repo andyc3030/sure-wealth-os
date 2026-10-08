@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -2925,6 +2925,139 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
     t.index ["status"], name: "index_wise_items_on_status"
   end
 
+  create_table "income_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.date "accrual_end_date"
+    t.date "accrual_start_date"
+    t.uuid "account_id"
+    t.string "canonical_key", limit: 255, null: false
+    t.decimal "cash_received_amount", precision: 19, scale: 4
+    t.string "confidence", default: "unknown", null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.date "declared_on"
+    t.date "expected_on"
+    t.decimal "fee_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "family_id", null: false
+    t.decimal "gross_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "income_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.date "payable_on"
+    t.uuid "raw_source_record_id"
+    t.date "received_on"
+    t.uuid "security_id"
+    t.string "source_key", limit: 255
+    t.string "source_system"
+    t.string "state", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "withholding_tax_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.index ["account_id"], name: "index_income_events_on_account_id"
+    t.index ["family_id", "canonical_key"], name: "idx_income_events_family_canonical", unique: true
+    t.index ["family_id", "income_type", "state"], name: "idx_income_events_type_state"
+    t.index ["family_id", "state", "expected_on"], name: "idx_income_events_state_calendar"
+    t.index ["family_id"], name: "index_income_events_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_income_events_on_raw_source_record_id"
+    t.index ["security_id"], name: "index_income_events_on_security_id"
+    t.check_constraint "confidence::text = ANY (ARRAY['confirmed'::character varying, 'high'::character varying, 'estimated'::character varying, 'low'::character varying, 'unknown'::character varying]::text[])", name: "chk_income_events_confidence"
+    t.check_constraint "gross_amount >= 0::numeric AND withholding_tax_amount >= 0::numeric AND fee_amount >= 0::numeric AND (cash_received_amount IS NULL OR cash_received_amount >= 0::numeric)", name: "chk_income_events_nonnegative_amounts"
+    t.check_constraint "income_type::text = ANY (ARRAY['dividend'::character varying, 'interest'::character varying, 'coupon'::character varying, 'distribution'::character varying, 'rent'::character varying, 'salary'::character varying, 'pension'::character varying, 'annuity'::character varying, 'business_income'::character varying, 'other'::character varying]::text[])", name: "chk_income_events_type"
+    t.check_constraint "state::text = ANY (ARRAY['forecast'::character varying, 'accrued'::character varying, 'declared'::character varying, 'received'::character varying]::text[])", name: "chk_income_events_state"
+  end
+
+  create_table "income_event_transitions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "from_state"
+    t.uuid "income_event_id", null: false
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "reason"
+    t.jsonb "snapshot", default: {}, null: false
+    t.string "to_state", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_income_event_transitions_on_family_id"
+    t.index ["income_event_id", "occurred_at"], name: "idx_income_event_transitions_timeline"
+    t.index ["income_event_id"], name: "index_income_event_transitions_on_income_event_id"
+    t.index ["raw_source_record_id"], name: "index_income_event_transitions_on_raw_source_record_id"
+  end
+
+  create_table "liability_payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.string "canonical_key", limit: 255, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.uuid "entry_id"
+    t.uuid "family_id", null: false
+    t.decimal "fee_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "insurance_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "interest_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.date "payment_date", null: false
+    t.string "payment_type", null: false
+    t.decimal "principal_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "raw_source_record_id"
+    t.string "source_key", limit: 255
+    t.string "source_system"
+    t.decimal "total_amount", precision: 19, scale: 4, null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.index ["account_id", "payment_date"], name: "idx_liability_payments_account_date"
+    t.index ["account_id"], name: "index_liability_payments_on_account_id"
+    t.index ["entry_id"], name: "index_liability_payments_on_entry_id"
+    t.index ["family_id", "canonical_key"], name: "idx_liability_payments_family_canonical", unique: true
+    t.index ["family_id"], name: "index_liability_payments_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_liability_payments_on_raw_source_record_id"
+    t.check_constraint "payment_type::text = ANY (ARRAY['actual'::character varying, 'scheduled'::character varying]::text[])", name: "chk_liability_payments_type"
+    t.check_constraint "total_amount = principal_amount + interest_amount + fee_amount + insurance_amount", name: "chk_liability_payments_component_sum"
+    t.check_constraint "total_amount >= 0::numeric AND principal_amount >= 0::numeric AND interest_amount >= 0::numeric AND fee_amount >= 0::numeric AND insurance_amount >= 0::numeric", name: "chk_liability_payments_nonnegative_amounts"
+  end
+
+  create_table "corporate_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.string "action_type", null: false
+    t.decimal "cash_amount", precision: 19, scale: 4
+    t.string "canonical_key", limit: 255, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3
+    t.date "effective_date", null: false
+    t.uuid "family_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.uuid "raw_source_record_id"
+    t.decimal "ratio_denominator", precision: 30, scale: 12
+    t.decimal "ratio_numerator", precision: 30, scale: 12
+    t.uuid "security_id", null: false
+    t.string "source_key", limit: 255
+    t.string "source_system"
+    t.string "status", default: "observed", null: false
+    t.uuid "successor_security_id"
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_corporate_actions_on_account_id"
+    t.index ["family_id", "canonical_key"], name: "idx_corporate_actions_family_canonical", unique: true
+    t.index ["family_id"], name: "index_corporate_actions_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_corporate_actions_on_raw_source_record_id"
+    t.index ["security_id", "effective_date", "action_type"], name: "idx_corporate_actions_security_date"
+    t.index ["security_id"], name: "index_corporate_actions_on_security_id"
+    t.index ["successor_security_id"], name: "index_corporate_actions_on_successor_security_id"
+    t.check_constraint "action_type::text = ANY (ARRAY['split'::character varying, 'reverse_split'::character varying, 'merger'::character varying, 'spinoff'::character varying, 'rights'::character varying, 'ticker_change'::character varying, 'cash_dividend'::character varying, 'special_dividend'::character varying, 'return_of_capital'::character varying, 'fund_reorganization'::character varying]::text[])", name: "chk_corporate_actions_type"
+    t.check_constraint "(ratio_numerator IS NULL OR ratio_numerator > 0::numeric) AND (ratio_denominator IS NULL OR ratio_denominator > 0::numeric)", name: "chk_corporate_actions_positive_ratio"
+    t.check_constraint "status::text = ANY (ARRAY['observed'::character varying, 'validated'::character varying, 'applied'::character varying, 'reconciled'::character varying, 'ignored'::character varying]::text[])", name: "chk_corporate_actions_status"
+  end
+
+  create_table "corporate_action_transitions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "corporate_action_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "from_status"
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "reason"
+    t.jsonb "snapshot", default: {}, null: false
+    t.string "to_status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["corporate_action_id", "occurred_at"], name: "idx_corporate_action_transitions_timeline"
+    t.index ["corporate_action_id"], name: "index_corporate_action_transitions_on_corporate_action_id"
+    t.index ["family_id"], name: "index_corporate_action_transitions_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_corporate_action_transitions_on_raw_source_record_id"
+  end
+
   create_table "raw_source_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id"
     t.uuid "account_provider_id"
@@ -3233,6 +3366,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_090000) do
   add_foreign_key "webauthn_credentials", "users"
   add_foreign_key "wise_accounts", "wise_items", on_delete: :cascade
   add_foreign_key "wise_items", "families"
+  add_foreign_key "income_events", "accounts", on_delete: :nullify
+  add_foreign_key "income_events", "families", on_delete: :cascade
+  add_foreign_key "income_events", "raw_source_records", on_delete: :nullify
+  add_foreign_key "income_events", "securities", on_delete: :nullify
+  add_foreign_key "income_event_transitions", "families", on_delete: :cascade
+  add_foreign_key "income_event_transitions", "income_events", on_delete: :cascade
+  add_foreign_key "income_event_transitions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "liability_payments", "accounts", on_delete: :cascade
+  add_foreign_key "liability_payments", "entries", on_delete: :nullify
+  add_foreign_key "liability_payments", "families", on_delete: :cascade
+  add_foreign_key "liability_payments", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_action_transitions", "corporate_actions", on_delete: :cascade
+  add_foreign_key "corporate_action_transitions", "families", on_delete: :cascade
+  add_foreign_key "corporate_action_transitions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_actions", "accounts", on_delete: :nullify
+  add_foreign_key "corporate_actions", "families", on_delete: :cascade
+  add_foreign_key "corporate_actions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_actions", "securities", on_delete: :cascade
+  add_foreign_key "corporate_actions", "securities", column: "successor_security_id", on_delete: :nullify
   add_foreign_key "raw_source_records", "account_providers", on_delete: :nullify
   add_foreign_key "raw_source_records", "accounts", on_delete: :nullify
   add_foreign_key "raw_source_records", "families", on_delete: :cascade

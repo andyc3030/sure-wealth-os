@@ -35,6 +35,15 @@ class Holding::CostBasisTracker
     @total_qty += qty
   end
 
+  # A stock split changes units, not total economic cost. 2-for-1 doubles the
+  # running quantity and halves average cost; a reverse split does the inverse.
+  def apply_split(ratio)
+    ratio = ratio&.to_d
+    return if ratio.nil? || !ratio.positive? || @total_qty.zero?
+
+    @total_qty *= ratio
+  end
+
   def sell(qty)
     qty = qty&.to_d
     return if qty.nil? || qty.zero? || @total_qty.zero?
