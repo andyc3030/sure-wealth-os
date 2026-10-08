@@ -97,14 +97,27 @@ module WealthOs
 
         def type_policy_detail(policy_name, value)
           policy = summary.classification_policy.fetch(policy_name)
+          unclassified = valuation_rows.select do |row|
+            row["classification"] == "asset" && row["accountable_type"].blank?
+          end
           assets = valuation_rows.select do |row|
-            row["classification"] == "asset" && policy.fetch("asset_types").include?(account_type_for(row))
+            row["classification"] == "asset" &&
+              policy.fetch("asset_types").include?(row["accountable_type"])
           end
           liabilities = valuation_rows.select { |row| row["classification"] == "liability" }
 
-          monetary_detail(value,
-            "#{policy.fetch("formula")}; eligible asset types: #{policy.fetch("asset_types").join(", ")}",
-            { "eligible_assets" => assets, "liabilities" => liabilities, "policy" => policy })
+          calculation = if unclassified.any?
+            "unavailable: this legacy snapshot predates immutable account-type capture"
+          else
+            "#{policy.fetch("formula")}; eligible asset types: #{policy.fetch("asset_types").join(", ")}"
+          end
+
+          monetary_detail(value, calculation, {
+            "eligible_assets" => assets,
+            "unclassified_assets" => unclassified,
+            "liabilities" => liabilities,
+            "policy" => policy
+          })
         end
 
         def forecast_components(days)
@@ -150,18 +163,6 @@ module WealthOs
 
         def valuation_rows
           @valuation_rows ||= Array(snapshot.payload.dig("valuation", "accounts"))
-        end
-
-        def account_type_for(row)
-          row["accountable_type"].presence || account_types_by_id[row["account_id"].to_s]
-        end
-
-        def account_types_by_id
-          @account_types_by_id ||= begin
-            ids = valuation_rows.filter_map { |row| row["account_id"] }.uniq
-            Account.where(family_id: snapshot.family_id, id: ids)
-              .pluck(:id, :accountable_type).to_h.transform_keys(&:to_s)
-          end
         end
 
         def serialized_value(value)
