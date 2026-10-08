@@ -99,8 +99,8 @@ module WealthOs
           snapshot.id, snapshot.close_date, snapshot.cutoff_at, snapshot.reporting_currency,
           snapshot.quality_status, snapshot.confidence.to_d,
           snapshot.gross_assets.to_d, total_liabilities, snapshot.net_worth.to_d,
-          liquid_assets, liquid_assets - total_liabilities,
-          investable_assets, investable_assets - total_liabilities,
+          liquid_assets, liquid_assets && (liquid_assets - total_liabilities),
+          investable_assets, investable_assets && (investable_assets - total_liabilities),
           income_by_state.freeze,
           {
             "basis" => "365_day_contractual_income_forecast",
