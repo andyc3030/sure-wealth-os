@@ -152,4 +152,61 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
     assert_not recommendation.update(action: "increase")
     assert_includes recommendation.errors[:base], "investment recommendations are append-only; create a new recommendation version"
   end
+
+  private
+
+    def create_passing_evidence(family, theme)
+      specs = [
+        [ "peer_reviewed_academic", "Academic A", false ],
+        [ "regulator_government_multilateral", "Regulator A", false ],
+        [ "primary_data_institution", "Primary Data A", false ],
+        [ "company_filing", "Company Filing A", false ],
+        [ "institutional_research", "Institutional A", false ],
+        [ "specialist_research", "Specialist A", false ],
+        [ "financial_journalism", "Journalism A", true ],
+        [ "financial_journalism", "Journalism B", true ],
+        [ "university_research", "University A", true ],
+        [ "expert_podcast", "Expert A", false ]
+      ]
+
+      sources = specs.each_with_index.map do |(source_type, publisher, dissenting), index|
+        ResearchSource.create!(
+          family: family,
+          theme: theme,
+          title: "Evidence source #{index}",
+          publisher: publisher,
+          url: "https://example.com/#{theme}/#{index}",
+          source_type: source_type,
+          publication_date: Date.new(2025, 1, 1) + index.days,
+          accessed_at: Time.current,
+          independence_group: "#{theme}-independent-#{index}",
+          dissenting: dissenting
+        )
+      end
+
+      [ 1, 2 ].each do |index|
+        ResearchClaim.create!(
+          family: family,
+          research_source: sources[index],
+          theme: theme,
+          claim_type: "fact",
+          claim_summary: "Independently cross-checked material fact #{index}.",
+          material: true,
+          cross_check_key: "#{theme}-material-fact",
+          thesis_effect: "supports"
+        )
+      end
+
+      [ 6, 7, 8 ].each do |index|
+        ResearchClaim.create!(
+          family: family,
+          research_source: sources[index],
+          theme: theme,
+          claim_type: "fact",
+          claim_summary: "Counter-thesis evidence #{index}.",
+          thesis_effect: "challenges"
+        )
+      end
+    end
+
 end
