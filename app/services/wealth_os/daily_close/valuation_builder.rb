@@ -40,6 +40,8 @@ module WealthOs
 
           {
             "account_id" => account.id,
+            "balance_id" => balance.id,
+            "balance_date" => balance.date.iso8601,
             "name" => account.name,
             "classification" => account.classification,
             "accountable_type" => account.accountable_type,
