@@ -172,3 +172,26 @@ Performance remains deterministic service-layer calculation rather than mutable 
 - `WealthOs::Performance::NetWorthAttribution`.
 
 Daily immutable performance snapshots are deferred to the authoritative daily-close phase.
+
+
+# Phase 5 additions
+
+## daily_close_snapshots
+
+One immutable authoritative close per family and London close date.
+
+Key columns:
+
+- `family_id`;
+- `close_date`;
+- `cutoff_at` / `closed_at`;
+- close timezone and reporting currency;
+- PASS/WARNING quality status and deterministic confidence;
+- gross assets / total liabilities / net worth in reporting currency;
+- canonical JSON payload;
+- SHA-256 payload digest;
+- schema version.
+
+The payload carries stage evidence, exact account valuations and FX lineage, income/liability accounting, performance bridge, contractual cash forecasts, quality evidence and deterministic ACTION NOW output.
+
+A unique `family_id + close_date` index enforces one authoritative close. Replays must be equivalent at the canonical financial-content level or fail with an idempotency collision.
