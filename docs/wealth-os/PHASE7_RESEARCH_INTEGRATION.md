@@ -35,3 +35,14 @@ The Friday New York weekly-entry gate is advisory only. If the configured tolera
 ## Execution prohibition
 
 Phase 7 adds no trade, order-routing, transfer, payment, withdrawal, borrowing or broker-write capability. AI/MCP remains read-only.
+
+## Controlled AI
+
+Family administrators receive two additional read-only assistant/MCP reads:
+
+- stored research assessments;
+- stored investment recommendations.
+
+The assistant may explain these stored records but cannot create, upgrade or downgrade a recommendation itself. If no governed recommendation exists, or an assessment is marked insufficient evidence, the assistant must say so rather than fabricate a product-specific action.
+
+Research records are advisory and remain separate from authoritative daily-close accounting values.
