@@ -45,4 +45,13 @@ class WealthOsDashboardIntegrationTest < ActionDispatch::IntegrationTest
     assert_select "a[href*='/wealth_os/snapshots/'][href$='/provenance/net_worth']"
     assert_select "#wealth-os-summary", text: /Liquid net worth/
   end
+
+  test "family member does not receive the family-wide authoritative close widget" do
+    sign_in users(:family_member)
+
+    get root_path
+
+    assert_response :ok
+    assert_select "section[data-section-key='wealth_os_summary']", count: 0
+  end
 end
