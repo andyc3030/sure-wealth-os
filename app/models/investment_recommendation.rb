@@ -35,13 +35,19 @@ class InvestmentRecommendation < ApplicationRecord
         balance_sheet_analysis: balance_sheet_analysis,
         downside_analysis: downside_analysis,
         structural_thesis: structural_thesis,
-        principal_risks: principal_risks
+        near_term_catalyst: near_term_catalyst,
+        principal_risks: principal_risks,
+        correlation_context: correlation_context
       }.each do |field, value|
         errors.add(field, "is required for increase/consider recommendations") if value.blank?
       end
 
       if reference_price.blank? || price_currency.blank? || price_as_of.blank? || price_source.blank?
         errors.add(:reference_price, "requires sourced, timestamped current price context")
+      end
+
+      if allocation_sleeve == "none"
+        errors.add(:allocation_sleeve, "must be core or aggressive for increase/consider recommendations")
       end
     end
 
