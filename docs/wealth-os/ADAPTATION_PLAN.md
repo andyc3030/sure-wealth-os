@@ -161,6 +161,8 @@ Implemented scope:
 - advisory investment recommendations with valuation, balance-sheet, downside, risk and portfolio-context requirements;
 - sourced/timestamped price discipline;
 - deterministic Friday New York weekly-entry gate using a configured 10-week-SMA tolerance;
+- increase/consider validation re-runs the stored source/claim EvidenceGate rather than trusting assessment counters or flags;
+- admin-only read AI/MCP access to stored research assessments and stored governed recommendations;
 - research and recommendations remain advisory only and cannot trigger trades, transfers, payments, borrowing or financial-record mutation;
 - accounting/daily-close facts remain authoritative for financial reporting and are not overwritten by research conclusions.
 
@@ -169,7 +171,7 @@ Phase 7 exit criteria:
 - research foundation is integrated on top of the Phase 6 head;
 - promotional sources cannot pass as accepted evidence;
 - material factual claims require independent cross-checks;
-- insufficient evidence blocks high-conviction increase/consider recommendations;
+- insufficient evidence blocks high-conviction increase/consider recommendations and cannot be bypassed by manually optimistic assessment fields;
 - current-price recommendations require source, currency and timestamp;
 - weekly technical gating fails closed when the near-10W tolerance is absent;
 - research cannot mutate authoritative-close, source, transaction, valuation or execution state;
