@@ -79,6 +79,13 @@ module WealthOs
 
         raise QualityGateFailed.new(quality: quality, action_now: action_now) if quality.fail?
 
+        provenance = ProvenanceManifestBuilder.new(
+          family: family,
+          close_date: close_date,
+          cutoff_at: cutoff_at,
+          valuation: valuation
+        ).call
+
         payload = {
           "schema_version" => 1,
           "close_date" => close_date.iso8601,
@@ -91,6 +98,7 @@ module WealthOs
           "performance" => performance,
           "forecast" => forecast.as_json,
           "quality" => quality.as_json,
+          "provenance" => provenance,
           "action_now" => action_now
         }
 
