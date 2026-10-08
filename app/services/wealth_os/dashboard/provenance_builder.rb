@@ -9,7 +9,10 @@ module WealthOs
         gross_assets total_liabilities net_worth liquid_net_worth investable_net_worth
         income_forecast income_accrued income_declared income_received
         income_equivalent_annual income_equivalent_monthly income_equivalent_daily
-        forecast_7 forecast_30 forecast_90 forecast_365 confidence
+        forecast_7_income forecast_7_liabilities forecast_7_net
+        forecast_30_income forecast_30_liabilities forecast_30_net
+        forecast_90_income forecast_90_liabilities forecast_90_net
+        forecast_365_income forecast_365_liabilities forecast_365_net confidence
       ].freeze
 
       def self.call(snapshot:, metric:)
