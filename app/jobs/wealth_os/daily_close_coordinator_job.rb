@@ -7,21 +7,18 @@ module WealthOs
     def perform(now: Time.current)
       local_now = now.in_time_zone(DailyClose::Configuration::DEFAULT_TIMEZONE)
 
-      if prepare_sync_window?(local_now)
-        prepare_families
-      elsif finalize_window?(local_now)
-        finalize_families(now: now, close_date: local_now.to_date - 1.day)
-      end
+      prepare_families if prepare_sync_window?(local_now)
+
+      finalize_families(
+        now: now,
+        close_date: DailyClose::Configuration.eligible_close_date(now: now)
+      )
     end
 
     private
 
       def prepare_sync_window?(local_now)
         local_now.hour == 23 && local_now.min >= 30
-      end
-
-      def finalize_window?(local_now)
-        local_now.hour.zero?
       end
 
       def prepare_families
