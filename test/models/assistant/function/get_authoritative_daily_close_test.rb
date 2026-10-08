@@ -25,6 +25,14 @@ class Assistant::Function::GetAuthoritativeDailyCloseTest < ActiveSupport::TestC
     assert_equal date.iso8601, result.fetch("close_date")
   end
 
+  test "does not expose family-wide close to a non-admin family member" do
+    user = users(:family_member)
+
+    result = Assistant::Function::GetAuthoritativeDailyClose.new(user).call
+
+    assert_equal "authoritative_close_not_available", result.fetch("error")
+  end
+
   private
 
     def minimal_payload(date)
