@@ -33,6 +33,27 @@ class WealthOs::Dashboard::SummaryBuilderTest < ActiveSupport::TestCase
       result.classification_policy.fetch("investable_net_worth").fetch("asset_types")
   end
 
+  test "does not backfill missing historic account types from current account data" do
+    snapshot = capture_snapshot(
+      valuation_rows: [
+        {
+          "account_id" => accounts(:depository).id,
+          "name" => "Legacy asset",
+          "classification" => "asset",
+          "currency" => "GBP",
+          "reporting_currency" => "GBP",
+          "reporting_value" => "1000"
+        }
+      ]
+    )
+
+    result = WealthOs::Dashboard::SummaryBuilder.call(snapshot: snapshot)
+
+    assert_nil result.liquid_net_worth
+    assert_nil result.investable_net_worth
+    assert_equal 1, result.data_completeness.fetch("unclassified_snapshot_accounts")
+  end
+
   test "derives annual monthly and daily equivalents from the 365 day contractual forecast" do
     snapshot = capture_snapshot(valuation_rows: [])
     result = WealthOs::Dashboard::SummaryBuilder.call(snapshot: snapshot)
