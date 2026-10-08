@@ -328,7 +328,10 @@ class PagesController < ApplicationController
     def wealth_os_dashboard_summary
       return @wealth_os_dashboard_summary if defined?(@wealth_os_dashboard_summary)
 
-      @wealth_os_dashboard_summary = WealthOs::Dashboard::SummaryBuilder.latest(family: Current.family)
+      @wealth_os_dashboard_summary =
+        if WealthOs::Dashboard::AccessPolicy.allowed?(user: Current.user, family: Current.family)
+          WealthOs::Dashboard::SummaryBuilder.latest(family: Current.family)
+        end
     end
 
     # Resolves a section's layout guardrails, applying the user's height preset
