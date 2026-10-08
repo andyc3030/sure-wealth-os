@@ -30,6 +30,7 @@ class WealthOs::DailyClose::ActionNowBuilderTest < ActiveSupport::TestCase
       forecast: forecast
     )
 
-    assert_equal "NO ACTION", actions.one.fetch("action")
+    assert_predicate actions, :one?
+    assert_equal "NO ACTION", actions.first.fetch("action")
   end
 end
