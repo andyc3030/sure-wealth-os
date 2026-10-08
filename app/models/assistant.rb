@@ -28,7 +28,9 @@ module Assistant
   # These tools are therefore exposed only to family administrators.
   ADMIN_ONLY_READ_FUNCTION_CLASSES = [
     Function::GetAuthoritativeDailyClose,
-    Function::GetAuthoritativeMetricProvenance
+    Function::GetAuthoritativeMetricProvenance,
+    Function::GetResearchAssessments,
+    Function::GetInvestmentRecommendations
   ].freeze
 
   # Preview reads remain gated by the user's preview preference. Write-capable
