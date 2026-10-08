@@ -16,6 +16,8 @@ module Assistant
     Function::GetHoldings,
     Function::GetBalanceSheet,
     Function::GetIncomeStatement,
+    Function::GetAuthoritativeDailyClose,
+    Function::GetAuthoritativeMetricProvenance,
     Function::GetBudget,
     Function::SearchFamilyFiles,
     Function::GetTags,
