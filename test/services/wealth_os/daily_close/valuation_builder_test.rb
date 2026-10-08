@@ -10,7 +10,7 @@ class WealthOs::DailyClose::ValuationBuilderTest < ActiveSupport::TestCase
 
     date = Date.new(2026, 10, 8)
     account.balances.where(date: date).delete_all
-    account.balances.create!(
+    balance = account.balances.create!(
       date: date,
       currency: "USD",
       balance: 5_000,
@@ -33,6 +33,8 @@ class WealthOs::DailyClose::ValuationBuilderTest < ActiveSupport::TestCase
       fx_resolver: WealthOs::DailyClose::FxResolver.new
     ).call
 
+    assert_equal balance.id, result.accounts.first.fetch("balance_id")
+    assert_equal date.iso8601, result.accounts.first.fetch("balance_date")
     assert_equal BigDecimal("4000"), result.gross_assets
     assert_equal BigDecimal("0"), result.total_liabilities
     assert_equal BigDecimal("4000"), result.net_worth

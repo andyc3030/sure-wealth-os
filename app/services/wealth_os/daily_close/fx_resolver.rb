@@ -7,7 +7,8 @@ module WealthOs
       LOOKBACK_DAYS = 5
 
       Resolution = Data.define(
-        :from_currency, :to_currency, :rate, :rate_date, :requested_date, :age_days, :source
+        :from_currency, :to_currency, :rate, :rate_date, :requested_date, :age_days, :source,
+        :exchange_rate_id
       ) do
         def stale?
           age_days.positive?
@@ -21,7 +22,8 @@ module WealthOs
             "rate_date" => rate_date.iso8601,
             "requested_date" => requested_date.iso8601,
             "age_days" => age_days,
-            "source" => source
+            "source" => source,
+            "exchange_rate_id" => exchange_rate_id
           }
         end
       end
@@ -41,7 +43,7 @@ module WealthOs
         return @cache.fetch(key) if @cache.key?(key)
 
         resolution = if from == to
-          Resolution.new(from, to, BigDecimal("1"), date, date, 0, "identity")
+          Resolution.new(from, to, BigDecimal("1"), date, date, 0, "identity", nil)
         else
           resolve_market_rate(from: from, to: to, date: date)
         end
@@ -61,7 +63,8 @@ module WealthOs
               requested_date: date,
               rate: direct.rate.to_d,
               rate_date: direct.date,
-              source: "exchange_rate"
+              source: "exchange_rate",
+              exchange_rate_id: direct.id
             )
           end
 
@@ -76,7 +79,8 @@ module WealthOs
               requested_date: date,
               rate: BigDecimal("1") / inverse_rate,
               rate_date: inverse.date,
-              source: "inverse_exchange_rate"
+              source: "inverse_exchange_rate",
+              exchange_rate_id: inverse.id
             )
           end
 
@@ -91,7 +95,7 @@ module WealthOs
             .first
         end
 
-        def build_resolution(from:, to:, requested_date:, rate:, rate_date:, source:)
+        def build_resolution(from:, to:, requested_date:, rate:, rate_date:, source:, exchange_rate_id:)
           raise MissingRateError, "FX rate must be positive for #{from}/#{to}" unless rate.positive?
 
           Resolution.new(
@@ -101,7 +105,8 @@ module WealthOs
             rate_date,
             requested_date,
             (requested_date - rate_date).to_i,
-            source
+            source,
+            exchange_rate_id
           )
         end
     end

@@ -406,6 +406,45 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "tools/list exposes family-wide authoritative tools only to admins" do
+    with_mcp_env do
+      post "/mcp", params: jsonrpc_request("tools/list").to_json,
+           headers: mcp_headers(@token)
+
+      admin_tools = JSON.parse(response.body)["result"]["tools"].map { |tool| tool["name"] }
+      assert_includes admin_tools, "get_authoritative_daily_close"
+      assert_includes admin_tools, "get_authoritative_metric_provenance"
+    end
+
+    @user = users(:family_member)
+
+    with_mcp_env do
+      post "/mcp", params: jsonrpc_request("tools/list").to_json,
+           headers: mcp_headers(@token)
+
+      member_tools = JSON.parse(response.body)["result"]["tools"].map { |tool| tool["name"] }
+      assert_not_includes member_tools, "get_authoritative_daily_close"
+      assert_not_includes member_tools, "get_authoritative_metric_provenance"
+    end
+  end
+
+  test "tools/call rejects a family-wide authoritative tool for a non-admin" do
+    @user = users(:family_member)
+
+    with_mcp_env do
+      post "/mcp", params: jsonrpc_request(
+        "tools/call",
+        { name: "get_authoritative_daily_close", arguments: {} },
+        id: 41
+      ).to_json, headers: mcp_headers(@token)
+
+      assert_response :ok
+      body = JSON.parse(response.body)
+      assert_equal(-32602, body["error"]["code"])
+      assert_includes body["error"]["message"], "get_authoritative_daily_close"
+    end
+  end
+
   test "tools/list includes preview tools for an opted-in user" do
     @user.update!(preferences: (@user.preferences || {}).merge("preview_features_enabled" => true))
 

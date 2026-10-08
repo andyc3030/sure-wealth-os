@@ -9,7 +9,7 @@ class WealthOs::DailyClose::FxResolverTest < ActiveSupport::TestCase
       to_currency: "GBP",
       date: Date.new(2026, 10, 7)
     ).delete_all
-    ExchangeRate.create!(
+    rate = ExchangeRate.create!(
       from_currency: "CHF",
       to_currency: "GBP",
       date: Date.new(2026, 10, 7),
@@ -23,6 +23,8 @@ class WealthOs::DailyClose::FxResolverTest < ActiveSupport::TestCase
     )
 
     assert_equal BigDecimal("0.81"), result.rate
+    assert_equal rate.id, result.exchange_rate_id
+    assert_equal rate.id, result.as_json.fetch("exchange_rate_id")
     assert_equal 1, result.age_days
     assert result.stale?
   end

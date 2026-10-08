@@ -8,6 +8,8 @@ class AssistantTest < ActiveSupport::TestCase
 
     assert_includes default_classes, Assistant::Function::GetMerchants
     assert_includes default_classes, Assistant::Function::GetRecurringTransactions
+    assert_not_includes default_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_not_includes default_classes, Assistant::Function::GetAuthoritativeMetricProvenance
     assert_not_includes default_classes, Assistant::Function::GetInsights
     assert_not_includes default_classes, Assistant::Function::GetValuations
 
@@ -31,7 +33,16 @@ class AssistantTest < ActiveSupport::TestCase
       assert_not_includes default_classes, write_tool
     end
 
-    preview_user = users(:family_admin)
+    admin_user = users(:family_admin)
+    admin_classes = Assistant.function_classes(admin_user)
+    assert_includes admin_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_includes admin_classes, Assistant::Function::GetAuthoritativeMetricProvenance
+
+    member_classes = Assistant.function_classes(users(:family_member))
+    assert_not_includes member_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_not_includes member_classes, Assistant::Function::GetAuthoritativeMetricProvenance
+
+    preview_user = admin_user
     preview_user.update!(preferences: (preview_user.preferences || {}).merge("preview_features_enabled" => true))
     preview_classes = Assistant.function_classes(preview_user)
 
