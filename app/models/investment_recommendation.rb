@@ -18,6 +18,7 @@ class InvestmentRecommendation < ApplicationRecord
             allow_nil: true
   validate :new_capital_recommendation_has_full_investment_case
   validate :assessment_has_sufficient_evidence
+  validate :deterministic_evidence_gate_passes
   validate :assessment_matches_family
 
   before_update :prevent_mutation
@@ -57,6 +58,23 @@ class InvestmentRecommendation < ApplicationRecord
       return if research_assessment.nil? || !research_assessment.insufficient_evidence?
 
       errors.add(:research_assessment, "has insufficient evidence for increase/consider recommendations")
+    end
+
+    def deterministic_evidence_gate_passes
+      return unless action.in?(NEW_CAPITAL_ACTIONS)
+      return if family.nil? || research_assessment.nil?
+
+      result = WealthOs::Research::EvidenceGate.call(
+        theme: research_assessment.theme,
+        sources: ResearchSource.where(family_id: family_id, theme: research_assessment.theme).to_a,
+        claims: ResearchClaim.where(family_id: family_id, theme: research_assessment.theme).to_a
+      )
+      return if result.passed
+
+      errors.add(
+        :research_assessment,
+        "does not pass deterministic evidence gate: #{result.deficiencies.join("; ")}"
+      )
     end
 
     def assessment_matches_family
