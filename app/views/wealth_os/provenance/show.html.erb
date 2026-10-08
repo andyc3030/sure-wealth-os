@@ -14,8 +14,12 @@
         <div>
           <p class="text-xs uppercase text-secondary">Authoritative value</p>
           <p class="text-xl font-medium text-primary privacy-sensitive">
-            <%= @provenance.fetch("value") %>
-            <%= @provenance.fetch("reporting_currency") unless @provenance.fetch("metric") == "confidence" %>
+            <% if @provenance["value"].nil? %>
+              Unavailable
+            <% else %>
+              <%= @provenance.fetch("value") %>
+              <%= @provenance.fetch("reporting_currency") unless @provenance.fetch("metric") == "confidence" %>
+            <% end %>
           </p>
         </div>
         <div>
