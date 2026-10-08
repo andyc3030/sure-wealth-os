@@ -1,5 +1,7 @@
 <%# locals: (summary:, **args) %>
-<% money_for = ->(amount) { format_money(Money.from_amount(amount.to_d, summary.reporting_currency)) } %>
+<% money_for = ->(amount) {
+     amount.nil? ? "Unavailable" : format_money(Money.from_amount(amount.to_d, summary.reporting_currency))
+   } %>
 <% provenance_path = ->(metric) { wealth_os_snapshot_provenance_path(snapshot_id: summary.snapshot_id, metric: metric) } %>
 
 <div id="wealth-os-summary" class="space-y-5 px-4">
