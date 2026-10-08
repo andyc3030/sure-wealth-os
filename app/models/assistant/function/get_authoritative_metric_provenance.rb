@@ -39,6 +39,13 @@ class Assistant::Function::GetAuthoritativeMetricProvenance < Assistant::Functio
   end
 
   def call(params = {})
+    unless WealthOs::Dashboard::AccessPolicy.allowed?(user: user, family: family)
+      return {
+        "error" => "authoritative_close_not_available",
+        "hint" => "Family-wide authoritative close data is available to family administrators."
+      }
+    end
+
     metric = params["metric"].to_s
     unless WealthOs::Dashboard::ProvenanceBuilder::METRICS.include?(metric)
       return {
