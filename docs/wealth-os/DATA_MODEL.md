@@ -195,3 +195,27 @@ Key columns:
 The payload carries stage evidence, exact account valuations and FX lineage, income/liability accounting, performance bridge, contractual cash forecasts, quality evidence and deterministic ACTION NOW output.
 
 A unique `family_id + close_date` index enforces one authoritative close. Replays must be equivalent at the canonical financial-content level or fail with an idempotency collision.
+
+# Phase 7 additions — Research intelligence
+
+## research_sources
+
+Family-scoped research-source records with publisher, source type, URL, publication/access dates, independence group, commercial-conflict disclosure, promotional/dissenting flags and optional raw-source provenance.
+
+## research_source_scores
+
+Versioned 0–5 scoring for authority, evidence quality, independence, methodological transparency, relevance and recency. Overall score is the transparent arithmetic mean; source-type credibility tier remains a separate ranking control.
+
+## research_claims
+
+Evidence claims linked to research sources with explicit claim type, materiality, thesis effect, cross-check key, confidence and verification timestamp.
+
+## research_assessments
+
+Theme/date/methodology-version assessments storing evidence summary, uncertainty, falsification conditions, structural bottlenecks, quality exposures, narrative beneficiaries, portfolio coverage, possible new positions and evidence sufficiency.
+
+## investment_recommendations
+
+Advisory-only increase/hold/reduce/exit/consider/avoid records linked to a research assessment. Recommendation fields include sourced price context, valuation, competitive position, capital intensity, cash generation, balance sheet, downside, structural thesis, catalyst, principal risks, correlation context, allocation sleeve and technical-gate state.
+
+Research records do not replace Phase 5/6 authoritative accounting snapshots. Research is evidence-led advisory analysis; accounting remains deterministic reporting.

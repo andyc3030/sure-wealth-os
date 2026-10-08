@@ -406,7 +406,7 @@ class McpControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "tools/list exposes family-wide authoritative tools only to admins" do
+  test "tools/list exposes family-wide authoritative and research tools only to admins" do
     with_mcp_env do
       post "/mcp", params: jsonrpc_request("tools/list").to_json,
            headers: mcp_headers(@token)
@@ -414,6 +414,8 @@ class McpControllerTest < ActionDispatch::IntegrationTest
       admin_tools = JSON.parse(response.body)["result"]["tools"].map { |tool| tool["name"] }
       assert_includes admin_tools, "get_authoritative_daily_close"
       assert_includes admin_tools, "get_authoritative_metric_provenance"
+      assert_includes admin_tools, "get_research_assessments"
+      assert_includes admin_tools, "get_investment_recommendations"
     end
 
     @user = users(:family_member)
@@ -425,6 +427,8 @@ class McpControllerTest < ActionDispatch::IntegrationTest
       member_tools = JSON.parse(response.body)["result"]["tools"].map { |tool| tool["name"] }
       assert_not_includes member_tools, "get_authoritative_daily_close"
       assert_not_includes member_tools, "get_authoritative_metric_provenance"
+      assert_not_includes member_tools, "get_research_assessments"
+      assert_not_includes member_tools, "get_investment_recommendations"
     end
   end
 
@@ -442,6 +446,23 @@ class McpControllerTest < ActionDispatch::IntegrationTest
       body = JSON.parse(response.body)
       assert_equal(-32602, body["error"]["code"])
       assert_includes body["error"]["message"], "get_authoritative_daily_close"
+    end
+  end
+
+  test "tools/call rejects a family-wide research tool for a non-admin" do
+    @user = users(:family_member)
+
+    with_mcp_env do
+      post "/mcp", params: jsonrpc_request(
+        "tools/call",
+        { name: "get_investment_recommendations", arguments: {} },
+        id: 43
+      ).to_json, headers: mcp_headers(@token)
+
+      assert_response :ok
+      body = JSON.parse(response.body)
+      assert_equal(-32602, body["error"]["code"])
+      assert_includes body["error"]["message"], "get_investment_recommendations"
     end
   end
 

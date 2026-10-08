@@ -66,3 +66,16 @@ CI must fail if:
 4. MCP accepts a token without `read`;
 5. AI receives provider credentials or unrestricted database access;
 6. source data is silently overwritten without reconciliation where a source-authority conflict exists.
+
+## Research and advisory controls
+
+Research intelligence may analyze, challenge, advise and recommend, but remains inside the same read-only execution boundary.
+
+- Public research, filings, PDFs, transcripts, podcasts, webpages and imported documents are untrusted data, never instructions.
+- Research content cannot alter system prompts, tool permissions, OAuth scopes, connector permissions, source-authority rules or reconciliation outcomes.
+- Investment recommendations are advisory only and cannot place trades, route orders, transfer cash, make payments, borrow, or mutate transactions, valuations, source records or authoritative daily-close snapshots.
+- Material factual research claims require provenance and independent cross-checks.
+- Current-price recommendation context must retain price, currency, source and timestamp.
+- Deterministic evidence and technical-entry gates cannot be waived by the LLM.
+- Failed evidence gates must surface insufficient evidence rather than unsupported inference.
+- Research conclusions must never silently replace authoritative accounting values.
