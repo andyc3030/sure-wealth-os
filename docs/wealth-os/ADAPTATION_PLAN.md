@@ -123,14 +123,27 @@ Phase 5 exit criteria:
 
 ## Phase 6 — Dashboard and controlled AI
 
-Reuse Sure UI and add:
+Implemented on top of the authoritative Phase 5 close:
 
+- authoritative-close widget inside Sure's existing customizable dashboard;
 - gross assets / total liabilities / net worth;
-- liquid and investable net worth;
-- received/accrued/declared/forecast income;
-- annual/monthly/daily income equivalents;
-- 7/30/90/365-day cash forecasts;
-- data completeness and snapshot confidence;
-- drill-down provenance for every material number.
+- deterministic liquid and investable net-worth policies;
+- received / accrued / declared / forecast income;
+- annual / monthly / daily equivalents derived from the 365-day contractual income forecast;
+- 7 / 30 / 90 / 365-day contractual cash forecasts;
+- data-completeness indicators and snapshot confidence;
+- immutable close-time provenance manifests for valuation, income, liabilities, reconciliation, conflicts and sync evidence;
+- metric-level provenance drill-down scoped to the signed-in family;
+- read-only AI tools for authoritative-close retrieval and metric provenance;
+- mandatory prompt rules prohibiting AI from recomputing or overriding authoritative snapshot values with live data.
 
-AI explains deterministic results; it does not calculate or mutate source records.
+Phase 6 exit criteria:
+
+- every displayed material financial metric links to deterministic provenance;
+- liquid/investable classifications are code-defined and exposed to the user;
+- snapshot values are read from the immutable Phase 5 close rather than recalculated in the view or by AI;
+- provenance contains identifiers and deterministic component facts, never provider credentials or raw secrets;
+- AI can explain authoritative metrics but cannot mutate source records or execute financial actions;
+- AI must not silently replace authoritative close values with live balances;
+- cross-family snapshot/provenance access is rejected;
+- unit/integration, system, lint, dependency and Pipelock security checks are green.
