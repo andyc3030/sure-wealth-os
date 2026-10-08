@@ -35,10 +35,10 @@ module WealthOs
             "gross_assets" => gross_assets.to_s("F"),
             "total_liabilities" => total_liabilities.to_s("F"),
             "net_worth" => net_worth.to_s("F"),
-            "liquid_assets" => liquid_assets.to_s("F"),
-            "liquid_net_worth" => liquid_net_worth.to_s("F"),
-            "investable_assets" => investable_assets.to_s("F"),
-            "investable_net_worth" => investable_net_worth.to_s("F"),
+            "liquid_assets" => decimal_string(liquid_assets),
+            "liquid_net_worth" => decimal_string(liquid_net_worth),
+            "investable_assets" => decimal_string(investable_assets),
+            "investable_net_worth" => decimal_string(investable_net_worth),
             "income_by_state" => income_by_state.transform_values { |value| value.to_s("F") },
             "income_equivalents" => income_equivalents.transform_values { |value|
               value.is_a?(BigDecimal) ? value.to_s("F") : value
@@ -52,6 +52,12 @@ module WealthOs
             "performance" => performance
           }
         end
+
+        private
+
+          def decimal_string(value)
+            value&.to_s("F")
+          end
       end
 
       class << self
@@ -73,10 +79,12 @@ module WealthOs
       def call
         payload = snapshot.payload || {}
         rows = Array(payload.dig("valuation", "accounts"))
-        types = account_types_for(rows)
+        classification_complete = rows
+          .select { |row| row["classification"] == "asset" }
+          .all? { |row| row["accountable_type"].present? }
 
-        liquid_assets = sum_asset_rows(rows, types: LIQUID_ACCOUNT_TYPES, account_types: types)
-        investable_assets = sum_asset_rows(rows, types: INVESTABLE_ACCOUNT_TYPES, account_types: types)
+        liquid_assets = sum_asset_rows(rows, types: LIQUID_ACCOUNT_TYPES) if classification_complete
+        investable_assets = sum_asset_rows(rows, types: INVESTABLE_ACCOUNT_TYPES) if classification_complete
         total_liabilities = snapshot.total_liabilities.to_d
 
         income_by_state = IncomeEvent::STATES.to_h do |state|
@@ -104,7 +112,9 @@ module WealthOs
           {
             "valuation_account_count" => rows.size,
             "exact_balance_coverage" => "1.0",
-            "unclassified_snapshot_accounts" => rows.count { |row| account_type_for(row, types).blank? },
+            "unclassified_snapshot_accounts" => rows.count { |row|
+              row["classification"] == "asset" && row["accountable_type"].blank?
+            },
             "open_source_conflicts" => quality_details.fetch("open_source_conflicts", 0),
             "failed_reconciliations" => quality_details.fetch("failed_reconciliations", 0),
             "reconciliation_warnings" => quality_details.fetch("reconciliation_warnings", 0),
@@ -134,22 +144,10 @@ module WealthOs
           end
         end
 
-        def sum_asset_rows(rows, types:, account_types:)
+        def sum_asset_rows(rows, types:)
           rows.select { |row|
-            row["classification"] == "asset" && types.include?(account_type_for(row, account_types))
+            row["classification"] == "asset" && types.include?(row["accountable_type"])
           }.sum(BigDecimal("0")) { |row| decimal(row["reporting_value"]) }
-        end
-
-        def account_types_for(rows)
-          ids = rows.filter_map { |row| row["account_id"] }.uniq
-          return {} if ids.empty?
-
-          Account.where(family_id: snapshot.family_id, id: ids)
-            .pluck(:id, :accountable_type).to_h.transform_keys(&:to_s)
-        end
-
-        def account_type_for(row, account_types)
-          row["accountable_type"].presence || account_types[row["account_id"].to_s]
         end
 
         def decimal(value)
