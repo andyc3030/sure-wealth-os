@@ -86,14 +86,40 @@ Phase 4 exit criteria:
 
 ## Phase 5 — Authoritative daily close
 
-Configured defaults:
+Implemented deterministic close:
 
 - timezone: Europe/London;
-- cut-off: 23:59;
-- reporting currency: GBP.
+- cut-off: 23:59 local time, DST-aware;
+- reporting currency: GBP;
+- 23:30 London pre-close family sync using Sure's existing provider pipeline;
+- post-midnight retry-safe finalization of the prior London date;
+- exact-date normalized balance requirement for every included visible account;
+- normalized FX only, with a five-day prior-rate window and no silent 1:1 cross-currency fallback;
+- income and liability close ledger;
+- 7/30/90/365-day contractual cash forecast;
+- deterministic net-worth performance bridge without fabricated TWR/MWR;
+- quality gate over sync, source conflicts, reconciliation and FX staleness;
+- one immutable SHA-256-digested snapshot per family/date;
+- deterministic ACTION NOW operational exceptions.
 
 Daily orchestration:
+
 sync → raw ingest → normalize → reconcile → value → income/liabilities → performance → forecast → quality → immutable snapshot → ACTION NOW report.
+
+Phase 5 exit criteria:
+
+- London cut-off is DST-aware;
+- incomplete syncs defer finalization;
+- failed/stale syncs, material source conflicts and material reconciliation failures block the authoritative snapshot;
+- missing exact-date balances fail loudly;
+- missing cross-currency FX fails loudly rather than substituting 1;
+- stale prior FX is explicit and lowers snapshot quality;
+- forecasts preserve undated income as unknown rather than inventing dates;
+- identical daily-close replay is idempotent;
+- changed financial content for an already-closed date raises an idempotency collision;
+- snapshots are immutable;
+- performance does not infer TWR/MWR without valid flow boundaries;
+- AI/MCP remains read-only.
 
 ## Phase 6 — Dashboard and controlled AI
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -600,6 +600,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
     t.jsonb "value"
     t.index ["enrichable_id", "enrichable_type", "source", "attribute_name"], name: "idx_on_enrichable_id_enrichable_type_source_attribu_5be5f63e08", unique: true
     t.index ["enrichable_type", "enrichable_id"], name: "index_data_enrichments_on_enrichable"
+  end
+
+  create_table "daily_close_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "closed_at", null: false
+    t.date "close_date", null: false
+    t.decimal "confidence", precision: 5, scale: 4, null: false
+    t.datetime "created_at", null: false
+    t.datetime "cutoff_at", null: false
+    t.uuid "family_id", null: false
+    t.decimal "gross_assets", precision: 19, scale: 4, null: false
+    t.decimal "net_worth", precision: 19, scale: 4, null: false
+    t.jsonb "payload", default: {}, null: false
+    t.string "payload_sha256", limit: 64, null: false
+    t.string "quality_status", null: false
+    t.string "reporting_currency", limit: 3, null: false
+    t.integer "schema_version", default: 1, null: false
+    t.string "timezone", null: false
+    t.decimal "total_liabilities", precision: 19, scale: 4, null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "close_date"], name: "idx_daily_close_family_date", unique: true
+    t.index ["family_id", "closed_at"], name: "idx_daily_close_family_closed_at"
+    t.check_constraint "confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_daily_close_confidence"
+    t.check_constraint "payload_sha256::text ~ '^[0-9a-f]{64}$'::text", name: "chk_daily_close_payload_sha256"
+    t.check_constraint "quality_status::text = ANY (ARRAY['pass'::character varying::text, 'warning'::character varying::text])", name: "chk_daily_close_quality_status"
+    t.check_constraint "schema_version > 0", name: "chk_daily_close_schema_version"
   end
 
   create_table "debug_log_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3401,5 +3426,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_010000) do
   add_foreign_key "source_identities", "families", on_delete: :cascade
   add_foreign_key "source_identities", "raw_source_records", on_delete: :nullify
   add_foreign_key "source_identities", "source_identities", column: "supersedes_id", on_delete: :nullify
+
+  add_foreign_key "daily_close_snapshots", "families", on_delete: :cascade
 
 end
