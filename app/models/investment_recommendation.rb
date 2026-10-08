@@ -17,6 +17,7 @@ class InvestmentRecommendation < ApplicationRecord
             numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 5 },
             allow_nil: true
   validate :new_capital_recommendation_has_full_investment_case
+  validate :assessment_has_sufficient_evidence
   validate :assessment_matches_family
 
   before_update :prevent_mutation
@@ -49,6 +50,13 @@ class InvestmentRecommendation < ApplicationRecord
       if allocation_sleeve == "none"
         errors.add(:allocation_sleeve, "must be core or aggressive for increase/consider recommendations")
       end
+    end
+
+    def assessment_has_sufficient_evidence
+      return unless action.in?(NEW_CAPITAL_ACTIONS)
+      return if research_assessment.nil? || !research_assessment.insufficient_evidence?
+
+      errors.add(:research_assessment, "has insufficient evidence for increase/consider recommendations")
     end
 
     def assessment_matches_family
