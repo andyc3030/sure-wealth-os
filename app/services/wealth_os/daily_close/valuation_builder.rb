@@ -24,7 +24,7 @@ module WealthOs
       end
 
       def call
-        accounts = family.accounts.visible.included_in_reports.order(:id).to_a
+        accounts = family.accounts.visible.included_in_reports.includes(:accountable).order(:id).to_a
         balances = Balance.where(account_id: accounts.map(&:id), date: close_date).to_a
           .index_by { |balance| [ balance.account_id, balance.currency ] }
 
@@ -42,6 +42,8 @@ module WealthOs
             "account_id" => account.id,
             "name" => account.name,
             "classification" => account.classification,
+            "accountable_type" => account.accountable_type,
+            "subtype" => account.subtype,
             "currency" => account.currency,
             "native_value" => balance.end_balance.to_d.to_s("F"),
             "reporting_currency" => reporting_currency,
