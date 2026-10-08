@@ -208,5 +208,4 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
         )
       end
     end
-
 end
