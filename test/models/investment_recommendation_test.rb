@@ -1,8 +1,9 @@
-require "test_helper"
+<sub>require "test_helper"
 
 class InvestmentRecommendationTest < ActiveSupport::TestCase
   setup do
     @family = families(:dylan_family)
+    create_passing_evidence(@family, "ai_networking")
     @assessment = ResearchAssessment.create!(
       family: @family,
       theme: "ai_networking",
@@ -75,6 +76,49 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
       "has insufficient evidence for increase/consider recommendations"
   end
 
+  test "manually optimistic assessment cannot bypass deterministic evidence gate" do
+    optimistic = ResearchAssessment.create!(
+      family: @family,
+      theme: "bitcoin_financial_system",
+      as_of_date: Date.current,
+      methodology_version: "1.0",
+      evidence_summary: "Claims sufficient evidence without underlying sources.",
+      uncertainty: "Uncertainty",
+      falsification_conditions: "Falsification conditions",
+      source_count: 12,
+      challenging_source_count: 3,
+      insufficient_evidence: false
+    )
+
+    recommendation = InvestmentRecommendation.new(
+      family: @family,
+      research_assessment: optimistic,
+      action: "consider",
+      ticker: "EXM",
+      company: "Example Networks",
+      reference_price: 100,
+      price_currency: "USD",
+      price_as_of: Time.current,
+      price_source: "authoritative market data",
+      structural_thesis: "Three-to-five-year thesis.",
+      near_term_catalyst: "Capacity deployment.",
+      principal_risks: [ "competition" ],
+      correlation_context: "Compared with existing holdings.",
+      allocation_sleeve: "aggressive",
+      valuation_analysis: "Valuation analysis.",
+      competitive_position_analysis: "Competitive analysis.",
+      capital_intensity_analysis: "Capital-intensity analysis.",
+      cash_generation_analysis: "Cash-generation analysis.",
+      balance_sheet_analysis: "Balance-sheet analysis.",
+      downside_analysis: "Downside analysis."
+    )
+
+    assert_not recommendation.valid?
+    assert recommendation.errors[:research_assessment].any? { |message|
+      message.include?("does not pass deterministic evidence gate")
+    }
+  end
+
   test "complete new capital recommendation is valid and append-only" do
     recommendation = InvestmentRecommendation.create!(
       family: @family,
@@ -109,3 +153,4 @@ class InvestmentRecommendationTest < ActiveSupport::TestCase
     assert_includes recommendation.errors[:base], "investment recommendations are append-only; create a new recommendation version"
   end
 end
+</sub>
