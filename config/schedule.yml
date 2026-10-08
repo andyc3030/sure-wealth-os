@@ -84,3 +84,10 @@ refresh_maintained_goal_targets:
   class: "RefreshMaintainedGoalTargetsJob"
   queue: "scheduled"
   description: "Recomputes the floor of reserves expressed in months of expenses"
+
+
+wealth_os_daily_close:
+  cron: "*/30 * * * *"
+  class: "WealthOs::DailyCloseCoordinatorJob"
+  queue: "scheduled"
+  description: "Coordinates the DST-aware Europe/London Wealth OS pre-close sync and authoritative prior-day close"
