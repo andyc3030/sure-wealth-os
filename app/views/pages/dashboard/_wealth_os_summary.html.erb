@@ -97,15 +97,15 @@
           <tr class="table-divider">
             <td class="px-3 py-3"><%= days %> days</td>
             <td class="px-3 py-3 text-right">
-              <%= link_to money_for.call(row.fetch("income")), provenance_path.call("forecast_#{days}"),
+              <%= link_to money_for.call(row.fetch("income")), provenance_path.call("forecast_#{days}_income"),
                   class: "privacy-sensitive hover:underline" %>
             </td>
             <td class="px-3 py-3 text-right">
-              <%= link_to money_for.call(row.fetch("liability_payments")), provenance_path.call("forecast_#{days}"),
+              <%= link_to money_for.call(row.fetch("liability_payments")), provenance_path.call("forecast_#{days}_liabilities"),
                   class: "privacy-sensitive hover:underline" %>
             </td>
             <td class="px-3 py-3 text-right">
-              <%= link_to money_for.call(row.fetch("net_cash")), provenance_path.call("forecast_#{days}"),
+              <%= link_to money_for.call(row.fetch("net_cash")), provenance_path.call("forecast_#{days}_net"),
                   class: "font-medium privacy-sensitive hover:underline" %>
             </td>
           </tr>
