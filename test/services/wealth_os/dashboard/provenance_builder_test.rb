@@ -56,6 +56,56 @@ class WealthOs::Dashboard::ProvenanceBuilderTest < ActiveSupport::TestCase
     assert_equal "forecast-1", result.fetch("components").first.fetch("canonical_key")
   end
 
+  test "returns the exact requested forecast component" do
+    family = families(:dylan_family)
+    date = Date.new(2026, 10, 16)
+    cutoff = WealthOs::DailyClose::Configuration.cutoff_at(date)
+
+    snapshot = DailyCloseSnapshot.capture!(
+      family: family,
+      close_date: date,
+      cutoff_at: cutoff,
+      closed_at: cutoff + 1.minute,
+      timezone: "Europe/London",
+      reporting_currency: "GBP",
+      quality_status: "pass",
+      confidence: 1,
+      gross_assets: 0,
+      total_liabilities: 0,
+      net_worth: 0,
+      payload: {
+        "valuation" => { "accounts" => [] },
+        "income_and_liabilities" => {
+          "income_by_state" => {
+            "forecast" => "0", "accrued" => "0", "declared" => "0", "received" => "0"
+          }
+        },
+        "forecast" => {
+          "horizons" => {
+            "7" => {
+              "through_date" => (date + 7.days).iso8601,
+              "income" => "125",
+              "liability_payments" => "25",
+              "net_cash" => "100"
+            },
+            "30" => row(date, 30), "90" => row(date, 90), "365" => row(date, 365)
+          },
+          "undated_income_count" => 0
+        },
+        "quality" => { "details" => {} },
+        "provenance" => {}
+      }
+    )
+
+    income = WealthOs::Dashboard::ProvenanceBuilder.call(snapshot: snapshot, metric: "forecast_7_income")
+    liabilities = WealthOs::Dashboard::ProvenanceBuilder.call(snapshot: snapshot, metric: "forecast_7_liabilities")
+    net = WealthOs::Dashboard::ProvenanceBuilder.call(snapshot: snapshot, metric: "forecast_7_net")
+
+    assert_equal "125.0", income.fetch("value")
+    assert_equal "25.0", liabilities.fetch("value")
+    assert_equal "100.0", net.fetch("value")
+  end
+
   private
 
     def row(date, days)
