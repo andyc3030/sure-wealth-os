@@ -3,6 +3,11 @@
 module WealthOs
   class ProvenanceController < ApplicationController
     def show
+      raise ActiveRecord::RecordNotFound unless Dashboard::AccessPolicy.allowed?(
+        user: Current.user,
+        family: Current.family
+      )
+
       metric = params[:metric].to_s
       raise ActiveRecord::RecordNotFound unless Dashboard::ProvenanceBuilder::METRICS.include?(metric)
 
