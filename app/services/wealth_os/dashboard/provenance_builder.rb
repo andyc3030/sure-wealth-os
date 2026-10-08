@@ -62,12 +62,12 @@ module WealthOs
             })
           when "liquid_net_worth", "investable_net_worth"
             type_policy_detail(metric, summary.public_send(metric))
-          when /Aincome_(forecast|accrued|declared|received)z/
+          when /\Aincome_(forecast|accrued|declared|received)\z/
             state = Regexp.last_match(1)
             monetary_detail(summary.income_by_state.fetch(state),
               "sum net economic income for close-time income events in state #{state}",
               Array(manifest["income_events"]).select { |row| row["state"] == state })
-          when /Aincome_equivalent_(annual|monthly|daily)z/
+          when /\Aincome_equivalent_(annual|monthly|daily)\z/
             period = Regexp.last_match(1)
             divisor = { "annual" => 1, "monthly" => 12, "daily" => 365 }.fetch(period)
             monetary_detail(summary.income_equivalents.fetch(period),
@@ -75,12 +75,28 @@ module WealthOs
                 "forecast_365_income" => summary.cash_forecasts.fetch(365).fetch("income").to_s("F"),
                 "divisor" => divisor, "basis" => summary.income_equivalents.fetch("basis")
               })
-          when /Aforecast_(7|30|90|365)z/
+          when /\Aforecast_(7|30|90|365)_(income|liabilities|net)\z/
             days = Regexp.last_match(1).to_i
+            component = Regexp.last_match(2)
             row = summary.cash_forecasts.fetch(days)
-            monetary_detail(row.fetch("net_cash"),
-              "contractual income through #{days} days minus scheduled liability payments through the same horizon",
-              forecast_components(days))
+            value, calculation = case component
+            when "income"
+              [
+                row.fetch("income"),
+                "contractual income due through #{days} days"
+              ]
+            when "liabilities"
+              [
+                row.fetch("liability_payments"),
+                "scheduled liability payments due through #{days} days"
+              ]
+            else
+              [
+                row.fetch("net_cash"),
+                "contractual income through #{days} days minus scheduled liability payments through the same horizon"
+              ]
+            end
+            monetary_detail(value, calculation, forecast_components(days))
           when "confidence"
             { value: summary.confidence,
               calculation: "deterministic Phase 5 quality gate confidence: PASS 1.00, WARNING 0.75",
