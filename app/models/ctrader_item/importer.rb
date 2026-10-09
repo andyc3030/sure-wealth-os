@@ -29,8 +29,8 @@ class CtraderItem::Importer
     accounts.map do |account_row|
       import_account(
         account_row,
-        from_timestamp: from_timestamp.to_i,
-        to_timestamp: to_timestamp.to_i,
+        from_timestamp: timestamp_ms(from_timestamp),
+        to_timestamp: timestamp_ms(to_timestamp),
         observed_at: observed_at
       )
     end
@@ -172,6 +172,17 @@ class CtraderItem::Importer
       end
 
       rows
+    end
+
+    def timestamp_ms(value)
+      case value
+      when Time, DateTime, ActiveSupport::TimeWithZone
+        (value.to_time.to_f * 1000).to_i
+      when Date
+        (value.in_time_zone.to_f * 1000).to_i
+      else
+        Integer(value)
+      end
     end
 
     def environment_matches?(row)
