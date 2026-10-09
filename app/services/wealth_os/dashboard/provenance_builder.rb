@@ -40,7 +40,8 @@ module WealthOs
           "value" => serialized_value(detail.fetch(:value)),
           "calculation" => detail.fetch(:calculation),
           "components" => detail.fetch(:components),
-          "lineage_status" => manifest.present? ? "captured_at_close" : "legacy_snapshot_without_phase6_manifest"
+          "lineage_status" => detail[:lineage_status] ||
+            (manifest.present? ? "captured_at_close" : "legacy_snapshot_without_phase6_manifest")
         }
       end
 
@@ -139,7 +140,8 @@ module WealthOs
           return {
             value: nil,
             calculation: "unavailable: this snapshot predates Phase 8 income resilience capture",
-            components: { "reason" => "legacy_snapshot_without_phase8_income_risk" }
+            components: { "reason" => "legacy_snapshot_without_phase8_income_risk" },
+            lineage_status: "legacy_snapshot_without_phase8_income_risk"
           } unless risk.present?
 
           value = summary.income_resilience.fetch(key)
@@ -155,7 +157,8 @@ module WealthOs
               "undated_income_count" => risk["undated_income_count"],
               "undated_income_amount" => risk["undated_income_amount"],
               "scheduled_liabilities" => risk["scheduled_liabilities"]
-            }
+            },
+            lineage_status: "captured_at_close"
           }
         end
 
