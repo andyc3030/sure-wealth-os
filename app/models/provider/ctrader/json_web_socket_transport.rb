@@ -9,6 +9,7 @@ require "websocket/driver"
 class Provider::Ctrader::JsonWebSocketTransport
   PORT = 5036
   HEARTBEAT_PAYLOAD_TYPE = 51
+  TOKEN_INVALIDATED_PAYLOAD_TYPE = 2147
   HEARTBEAT_INTERVAL = 10
   DEFAULT_OPEN_TIMEOUT = 10
   DEFAULT_RESPONSE_TIMEOUT = 30
@@ -38,6 +39,9 @@ class Provider::Ctrader::JsonWebSocketTransport
     raise ArgumentError, "client_msg_id is required" if client_msg_id.blank?
 
     connect!
+    authentication_error = @state_mutex.synchronize { @authentication_error }
+    raise authentication_error if authentication_error
+
     queue = Queue.new
 
     @pending_mutex.synchronize do
@@ -191,7 +195,13 @@ class Provider::Ctrader::JsonWebSocketTransport
 
     def handle_message(data)
       message = JSON.parse(data.to_s)
-      return if message["payloadType"].to_i == HEARTBEAT_PAYLOAD_TYPE
+      payload_type = message["payloadType"].to_i
+      return if payload_type == HEARTBEAT_PAYLOAD_TYPE
+
+      if payload_type == TOKEN_INVALIDATED_PAYLOAD_TYPE
+        authentication_failed!("cTrader account access token was invalidated")
+        return
+      end
 
       client_msg_id = message["clientMsgId"].presence
       if client_msg_id
@@ -207,6 +217,15 @@ class Provider::Ctrader::JsonWebSocketTransport
     def error_payload?(message)
       message["payloadType"].to_i.in?([ 50, 2142 ]) ||
         message.dig("payload", "errorCode").present?
+    end
+
+    def authentication_failed!(message)
+      error = Provider::Ctrader::AuthenticationError.new(message)
+
+      @state_mutex.synchronize do
+        @authentication_error ||= error
+      end
+      fail_pending!(error)
     end
 
     def connection_failed!(message)
