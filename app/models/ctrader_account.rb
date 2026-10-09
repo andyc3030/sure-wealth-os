@@ -40,13 +40,19 @@ class CtraderAccount < ApplicationRecord
     record
   end
 
+  def certification_institution_key
+    return "ic_markets" if broker_name.to_s.match?(/ic\s*markets/i)
+
+    broker_name.to_s.parameterize(separator: "_")
+  end
+
   def production_certification
     return nil unless broker_name.present?
 
     WealthOs::Connectors::ProductionGate.call(
       family: ctrader_item.family,
       provider_key: "ctrader",
-      institution_key: broker_name.parameterize(separator: "_"),
+      institution_key: certification_institution_key,
       account: linked_account
     )
   end
