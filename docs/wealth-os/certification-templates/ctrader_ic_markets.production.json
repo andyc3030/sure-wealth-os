@@ -1,0 +1,39 @@
+{
+  "environment": "production",
+  "provider_key": "ctrader",
+  "institution_key": "ic_markets",
+  "observed_scope": "accounts",
+  "checks": {
+    "institution_identity": false,
+    "account_identity": false,
+    "balance_equity": false,
+    "positions": false,
+    "pending_orders": false,
+    "historical_deals": false,
+    "commissions_swaps": false,
+    "cash_flows": false,
+    "permission_scope_view": false,
+    "refresh_scope_preserved": false,
+    "reconnect_deduplication": false,
+    "revocation": false,
+    "reconciliation": false,
+    "no_trading_requests": false
+  },
+  "evidence": {
+    "institution_identity": "",
+    "account_identity": "",
+    "balance_equity": "",
+    "positions": "",
+    "pending_orders": "",
+    "historical_deals": "",
+    "commissions_swaps": "",
+    "cash_flows": "",
+    "permission_scope_view": "",
+    "refresh_scope_preserved": "",
+    "reconnect_deduplication": "",
+    "revocation": "",
+    "reconciliation": "",
+    "no_trading_requests": ""
+  },
+  "notes": "Phase 13 live production certification. Do not place tokens, secrets, passwords, cookies, private keys or authorization headers in this file."
+}
