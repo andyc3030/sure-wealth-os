@@ -3,7 +3,8 @@
 class ConnectorCertification < ApplicationRecord
   ENVIRONMENTS = %w[sandbox demo production].freeze
   STATUSES = %w[passed failed].freeze
-  SECRET_KEY_PATTERN = /(token|secret|password|credential|authorization|cookie|api[_-]?key)/i
+  SECRET_KEY_PATTERN =
+    /(access[_-]?token|refresh[_-]?token|bearer[_-]?token|client[_-]?secret|api[_-]?(?:key|secret)|password|authorization[_-]?header|private[_-]?key|cookie)/i
 
   belongs_to :family
   belongs_to :account, optional: true
