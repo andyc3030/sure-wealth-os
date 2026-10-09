@@ -45,11 +45,14 @@ class CtraderItem::ImporterTest < ActiveSupport::TestCase
       calls << [ :trader, ctid_trader_account_id ]
       {
         "ctidTraderAccountId" => ctid_trader_account_id,
-        "balance" => 1_000_00,
-        "moneyDigits" => 2,
-        "depositAssetId" => 1,
-        "traderLogin" => 42,
-        "brokerName" => "IC Markets Global"
+        "trader" => {
+          "ctidTraderAccountId" => ctid_trader_account_id,
+          "balance" => 1_000_00,
+          "moneyDigits" => 2,
+          "depositAssetId" => 1,
+          "traderLogin" => 42,
+          "brokerName" => "IC Markets Global"
+        }
       }
     end
 
@@ -89,12 +92,18 @@ class CtraderItem::ImporterTest < ActiveSupport::TestCase
 
     def deals(ctid_trader_account_id:, from_timestamp:, to_timestamp:)
       calls << [ :deals, ctid_trader_account_id, from_timestamp, to_timestamp ]
-      { "deal" => [ { "dealId" => 91, "commission" => -250, "moneyDigits" => 2 } ] }
+      {
+        "deal" => [ { "dealId" => 91, "commission" => -250, "moneyDigits" => 2 } ],
+        "hasMore" => false
+      }
     end
 
     def orders(ctid_trader_account_id:, from_timestamp:, to_timestamp:)
       calls << [ :orders, ctid_trader_account_id, from_timestamp, to_timestamp ]
-      { "order" => [ { "orderId" => 88, "orderType" => "LIMIT" } ] }
+      {
+        "order" => [ { "orderId" => 88, "orderType" => "LIMIT" } ],
+        "hasMore" => false
+      }
     end
 
     def cash_flows(ctid_trader_account_id:, from_timestamp:, to_timestamp:)
