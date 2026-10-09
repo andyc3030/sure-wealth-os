@@ -45,6 +45,9 @@ class WealthOs::DailyClose::OrchestratorTest < ActiveSupport::TestCase
     assert_equal "GBP", snapshot.reporting_currency
     assert_equal BigDecimal("4000"), snapshot.net_worth
     assert_equal "pass", snapshot.quality_status
+    assert_equal 2, snapshot.schema_version
+    assert_equal "deterministic_income_stress", snapshot.payload.dig("income_risk", "model")
+    assert_equal false, snapshot.payload.dig("income_risk", "statistical_var")
     action_now = snapshot.payload.fetch("action_now")
     assert_predicate action_now, :one?
     assert_equal "NO ACTION", action_now.first.fetch("action")
