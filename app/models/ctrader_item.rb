@@ -77,6 +77,18 @@ class CtraderItem < ApplicationRecord
       (oauth_token_expires_at.blank? || oauth_token_expires_at.future?)
   end
 
+  def production_sync_approved?(at: Time.current)
+    return true if demo?
+
+    accounts = ctrader_accounts.to_a
+    return false if accounts.empty?
+
+    accounts.all? do |account|
+      result = account.production_certification(at: at)
+      result&.approved == true
+    end
+  end
+
   def import_read_only_snapshot!(gateway: nil, from_timestamp:, to_timestamp:, observed_at: Time.current)
     owned_transport = nil
     if gateway.nil?
