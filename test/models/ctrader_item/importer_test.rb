@@ -61,6 +61,15 @@ class CtraderItem::ImporterTest < ActiveSupport::TestCase
       { "asset" => [ { "assetId" => 1, "name" => "GBP" } ] }
     end
 
+    def symbols_list(ctid_trader_account_id:)
+      calls << [ :symbols_list, ctid_trader_account_id ]
+      {
+        "symbol" => [
+          { "symbolId" => 1001, "symbolName" => "GBPUSD", "enabled" => true }
+        ]
+      }
+    end
+
     def reconcile(ctid_trader_account_id:)
       calls << [ :reconcile, ctid_trader_account_id ]
       {
@@ -197,6 +206,30 @@ class CtraderItem::ImporterTest < ActiveSupport::TestCase
     assert_equal 2, cash_calls.size
     assert_operator cash_calls.first.fetch(3) - cash_calls.first.fetch(2), :<=, 7.days.in_milliseconds
     assert_equal cash_calls.first.fetch(3) + 1, cash_calls.second.fetch(2)
+  end
+
+  test "rejects account rows with an unknown live/demo environment" do
+    gateway = Class.new(FakeGateway) do
+      def list_accounts!(access_token:)
+        {
+          "permission_scope" => "SCOPE_VIEW",
+          "accounts" => [
+            { "ctidTraderAccountId" => 123_456, "brokerTitleShort" => "IC Markets Global" }
+          ]
+        }
+      end
+    end.new
+
+    error = assert_raises(Provider::Ctrader::Error) do
+      @item.import_read_only_snapshot!(
+        gateway: gateway,
+        from_timestamp: Time.current - 1.day,
+        to_timestamp: Time.current
+      )
+    end
+
+    assert_includes error.message, "environment is missing"
+    assert_nil @item.reload.last_synced_at
   end
 
   test "provider factory registers cTrader without exposing a public connection config" do
