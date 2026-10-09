@@ -17,6 +17,31 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
     assert certification.production_approved?
   end
 
+  test "production pass requires a family administrator reviewer" do
+    profile = WealthOs::Connectors::CertificationPolicy.profile!("ctrader")
+    checks = profile.required_checks.index_with { true }
+    evidence = profile.required_checks.index_with { |key| "evidence for #{key}" }
+
+    certification = ConnectorCertification.new(
+      family: @family,
+      provider_key: "ctrader",
+      institution_key: "ic_markets",
+      route_type: profile.route_type,
+      environment: "production",
+      status: "passed",
+      expected_scope: profile.expected_scope,
+      observed_scope: profile.expected_scope,
+      checks: checks,
+      evidence: evidence,
+      checked_at: Time.current,
+      review_due_at: 30.days.from_now
+    )
+
+    assert_not certification.valid?
+    assert_includes certification.errors[:reviewed_by],
+      "is required for production certification"
+  end
+
   test "direct optimistic status cannot bypass deterministic policy" do
     certification = ConnectorCertification.new(
       family: @family,
@@ -101,6 +126,7 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
         route_type: "direct_api",
         environment: environment,
         status: status,
+        reviewed_by: environment == "production" ? users(:family_admin) : nil,
         expected_scope: "accounts",
         observed_scope: "accounts",
         checks: checks,
