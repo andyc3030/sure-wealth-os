@@ -62,6 +62,44 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
     assert certification.errors[:status].any? { |message| message.include?("deterministic policy result failed") }
   end
 
+  test "production approval fails closed if reviewer is later removed" do
+    certification = build_certification(
+      status: "passed",
+      environment: "production",
+      review_due_at: 30.days.from_now
+    )
+
+    certification.update_column(:reviewed_by_id, nil)
+
+    assert_equal false, certification.reload.production_approved?
+  end
+
+  test "supersession cannot cross certification environments" do
+    previous = build_certification(environment: "demo")
+    profile = WealthOs::Connectors::CertificationPolicy.profile!("ctrader")
+
+    candidate = ConnectorCertification.new(
+      family: @family,
+      provider_key: "ctrader",
+      institution_key: "ic_markets",
+      route_type: profile.route_type,
+      environment: "production",
+      status: "failed",
+      reviewed_by: users(:family_admin),
+      expected_scope: profile.expected_scope,
+      observed_scope: profile.expected_scope,
+      checks: {},
+      evidence: {},
+      checked_at: Time.current,
+      review_due_at: 30.days.from_now,
+      supersedes: previous
+    )
+
+    assert_not candidate.valid?
+    assert_includes candidate.errors[:supersedes],
+      "must certify the same family/provider/institution/account/environment route"
+  end
+
   test "certification records are immutable" do
     certification = build_certification
 
@@ -109,7 +147,7 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
 
     assert_not candidate.valid?
     assert_includes candidate.errors[:supersedes],
-      "must certify the same family/provider/institution/account route"
+      "must certify the same family/provider/institution/account/environment route"
   end
 
   private
