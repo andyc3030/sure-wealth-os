@@ -17,6 +17,26 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
     assert certification.production_approved?
   end
 
+  test "direct optimistic status cannot bypass deterministic policy" do
+    certification = ConnectorCertification.new(
+      family: @family,
+      provider_key: "ctrader",
+      institution_key: "ic_markets",
+      route_type: "direct_api",
+      environment: "production",
+      status: "passed",
+      expected_scope: "accounts",
+      observed_scope: "accounts",
+      checks: {},
+      evidence: {},
+      checked_at: Time.current,
+      review_due_at: 30.days.from_now
+    )
+
+    assert_not certification.valid?
+    assert certification.errors[:status].any? { |message| message.include?("deterministic policy result failed") }
+  end
+
   test "certification records are immutable" do
     certification = build_certification
 
@@ -36,7 +56,8 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
       observed_scope: "accounts",
       checks: {},
       evidence: { "oauth" => { "access_token" => "must-not-be-stored" } },
-      checked_at: Time.current
+      checked_at: Time.current,
+      review_due_at: 30.days.from_now
     )
 
     assert_not certification.valid?
@@ -57,6 +78,7 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
       checks: {},
       evidence: {},
       checked_at: Time.current,
+      review_due_at: 30.days.from_now,
       supersedes: previous
     )
 
@@ -67,7 +89,11 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
 
   private
 
-    def build_certification(status: "failed", environment: "demo", review_due_at: nil)
+    def build_certification(status: "failed", environment: "demo", review_due_at: 30.days.from_now)
+      profile = WealthOs::Connectors::CertificationPolicy.profile!("ctrader")
+      checks = profile.required_checks.index_with { status == "passed" }
+      evidence = profile.required_checks.index_with { |key| status == "passed" ? "evidence for #{key}" : nil }.compact
+
       ConnectorCertification.create!(
         family: @family,
         provider_key: "ctrader",
@@ -77,8 +103,8 @@ class ConnectorCertificationTest < ActiveSupport::TestCase
         status: status,
         expected_scope: "accounts",
         observed_scope: "accounts",
-        checks: {},
-        evidence: { "account_identity" => "verified against provider account display" },
+        checks: checks,
+        evidence: evidence,
         checked_at: Time.current,
         review_due_at: review_due_at
       )
