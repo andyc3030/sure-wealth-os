@@ -9,8 +9,12 @@ class CtraderItem::Importer
   end
 
   def import(from_timestamp:, to_timestamp:, observed_at: Time.current)
-    raise Provider::Ctrader::ConfigurationError, "cTrader Open API is not configured" unless Provider::Ctrader.configured?
-    raise Provider::Ctrader::AuthenticationError, "cTrader item has no active OAuth token" unless ctrader_item.oauth_token_active?
+    unless Provider::Ctrader.configured?
+      raise Provider::Ctrader::ConfigurationError, "cTrader Open API is not configured"
+    end
+    unless ctrader_item.oauth_token_active?
+      raise Provider::Ctrader::AuthenticationError, "cTrader item has no active OAuth token"
+    end
 
     gateway.authenticate_application!(
       client_id: Provider::Ctrader.client_id,
@@ -113,7 +117,7 @@ class CtraderItem::Importer
           "unrealized_pnl" => pnl
         ),
         raw_positions_payload: sanitize(positions),
-        raw_orders_payload: sanitize(current_orders.presence || Array(orders["order"])),
+        raw_orders_payload: sanitize(current_orders.presence || orders),
         raw_deals_payload: sanitize(deals),
         raw_cash_flows_payload: sanitize(cash_flows),
         last_synced_at: observed_at
