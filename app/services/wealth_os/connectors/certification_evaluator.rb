@@ -9,7 +9,8 @@ module WealthOs
         result = CertificationPolicy.evaluate(
           provider_key: provider_key,
           observed_scope: observed_scope,
-          checks: checks
+          checks: checks,
+          evidence: evidence
         )
 
         previous = ConnectorCertification.where(
@@ -31,7 +32,8 @@ module WealthOs
           observed_scope: observed_scope.to_s,
           checks: checks.to_h.stringify_keys.merge(
             "_scope_matches" => result.fetch(:scope_matches),
-            "_missing_checks" => result.fetch(:missing_checks)
+            "_missing_checks" => result.fetch(:missing_checks),
+            "_missing_evidence" => result.fetch(:missing_evidence)
           ),
           evidence: evidence,
           checked_at: checked_at,
