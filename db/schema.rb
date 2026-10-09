@@ -3640,6 +3640,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_010000) do
   add_foreign_key "source_identities", "raw_source_records", on_delete: :nullify
   add_foreign_key "source_identities", "source_identities", column: "supersedes_id", on_delete: :nullify
 
+  add_foreign_key "connector_certifications", "users", column: "reviewed_by_id", on_delete: :nullify
   add_foreign_key "daily_close_snapshots", "families", on_delete: :cascade
   add_foreign_key "investment_recommendations", "families", on_delete: :cascade
   add_foreign_key "investment_recommendations", "research_assessments", on_delete: :cascade
