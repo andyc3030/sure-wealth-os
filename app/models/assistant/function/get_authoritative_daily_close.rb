@@ -11,9 +11,11 @@ class Assistant::Function::GetAuthoritativeDailyClose < Assistant::Function
         Read the immutable Wealth OS authoritative daily close.
 
         Use this for authoritative dashboard totals, income states, contractual
-        cash forecasts, liquid/investable net worth, close quality and confidence.
+        cash forecasts, liquid/investable net worth, income sustainability,
+        deterministic Income-at-Risk, close quality and confidence.
         The returned values are deterministic close outputs: explain them, do not
-        recompute or replace them with live balances.
+        recompute or replace them with live balances. Income-at-Risk is a documented
+        policy stress and must not be described as statistical VaR or a probability.
       INSTRUCTIONS
     end
   end
