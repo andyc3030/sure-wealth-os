@@ -15,13 +15,13 @@ This file records planned routes and current verification state. A route is **no
 
 | Category | Provider | Account type | Country | Currency | Preferred route | Fallback route | Status |
 |---|---|---|---|---|---|---|---|
-| Bank | Santander | Current | UK | GBP | Plaid (Europe / UK) | Lunch Flow / verified manual | **Provider support verified; fork code enabled; live consent test pending** |
-| Bank | NatWest | Current | UK | GBP | Plaid (Europe / UK) | Enable Banking | **Provider support verified; fork code enabled; live consent test pending** |
-| Bank | Revolut | Current / cash | UK | GBP / multi-currency | Plaid (Europe / UK) | Verified manual | **Provider support verified; live consent test pending** |
+| Bank | Santander | Current | UK | GBP | Plaid (Europe / UK) | Lunch Flow / verified manual | **Phase 9 certification profile implemented; real production consent/reconciliation evidence still pending** |
+| Bank | NatWest | Current | UK | GBP | Plaid (Europe / UK) | Enable Banking | **Phase 9 certification profile implemented; real production consent/reconciliation evidence still pending** |
+| Bank | Revolut | Current / cash | UK | GBP / multi-currency | Plaid (Europe / UK) | Verified manual | **Phase 9 certification profile implemented; real production consent/reconciliation evidence still pending** |
 | Savings | Kent Reliance | Savings / Cash ISA / fixed-term deposit | UK | GBP | Verified manual | Future secure connector if verified | **No Sure-compatible secure connector verified; online statements available for manual verification** |
-| Broker | AJ Bell | Investment accounts | UK | GBP / multi-currency | SnapTrade read-only | Lunch Flow / verified manual | **Connector support verified; credential-based hosted auth; explicit security acceptance + live test pending** |
-| Broker | Charles Schwab | Brokerage | US | USD / multi-currency | SnapTrade read-only | Verified manual | **Connector support verified; OAuth; broker approval + live test pending** |
-| Broker | IC Markets Global | cTrader Raw / CFD trading account | Global | GBP / USD / account currency | cTrader Open API OAuth `accounts` scope | Verified manual | **Direct read-only API route verified; dedicated Sure provider adapter required; live OAuth/reconciliation pending** |
+| Broker | AJ Bell | Investment accounts | UK | GBP / multi-currency | SnapTrade read-only | Lunch Flow / verified manual | **Phase 9 certification profile implemented; hosted-credential security acceptance and real live reconciliation still pending** |
+| Broker | Charles Schwab | Brokerage | US | USD / multi-currency | SnapTrade read-only | Verified manual | **Phase 9 certification profile implemented; broker approval and real live reconciliation still pending** |
+| Broker | IC Markets Global | cTrader Raw / CFD trading account | Global | GBP / USD / account currency | cTrader Open API OAuth `accounts` scope | Verified manual | **Phase 9 read-only backend + certification gate implemented; demo and genuine live OAuth/reconciliation certification still required before public activation** |
 
 ## UK connector verification — 2026-10-06
 
@@ -224,3 +224,19 @@ Wealth OS rule:
 - build a dedicated Sure cTrader provider adapter before production use;
 - ingest account identity, balance/equity, margin, positions, pending orders, historical deals/trades, commissions, swaps/financing and timestamps where the API exposes them;
 - do not expose order placement or other trading operations anywhere in Wealth OS or AI/MCP.
+
+
+## Phase 9 certification state
+
+A route is no longer described as Production Approved merely because provider documentation says it exists.
+
+Phase 9 records immutable certification results for:
+
+- `plaid_uk`;
+- `snaptrade`;
+- `ctrader`;
+- `verified_manual`.
+
+A production PASS requires all profile checks, evidence for every check, the exact expected access scope/profile, an unexpired review horizon, and an authorized family-administrator reviewer.
+
+Code/tests may prove that Wealth OS cannot request write authority. They **cannot** prove that a user's real institution connection returns the correct account, balance or transaction/position set. Those facts require a genuine provider session and reconciliation against the source institution.

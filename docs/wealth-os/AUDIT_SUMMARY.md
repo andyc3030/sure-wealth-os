@@ -74,3 +74,18 @@ Resolved/high-priority foundations now include:
 - controlled read-only AI/MCP execution order — Phases 1, 5–8.
 
 Remaining production work includes live connector certification and broader corporate-action coverage beyond the currently supported deterministic split/reverse-split path.
+
+
+## Implementation status after Phase 9
+
+Phase 9 resolves the missing connector-governance framework and the dedicated cTrader read-only backend requirement:
+
+- immutable production-certification ledger;
+- deterministic connector acceptance profiles;
+- fail-closed production approval;
+- cTrader accounts-only OAuth and SCOPE_VIEW enforcement;
+- read-only cTrader transport/import/provenance path.
+
+This does **not** convert currently pending real-world connections into certified ones. Plaid UK, SnapTrade brokerages and IC Markets remain operationally pending until genuine live consent/revocation/reconnect and source reconciliation evidence has been recorded.
+
+Remaining broader product work includes expanded corporate-action coverage and any subsequent production deployment/operations tooling selected after live certifications.

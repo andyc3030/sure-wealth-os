@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -569,6 +569,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
     t.index ["status"], name: "index_coinstats_items_on_status"
   end
 
+  create_table "connector_certifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "account_id"
+    t.string "provider_key", null: false
+    t.string "institution_key", null: false
+    t.string "route_type", null: false
+    t.string "environment", null: false
+    t.string "status", null: false
+    t.string "expected_scope", null: false
+    t.string "observed_scope", null: false
+    t.jsonb "checks", default: {}, null: false
+    t.jsonb "evidence", default: {}, null: false
+    t.string "evidence_sha256", limit: 64, null: false
+    t.datetime "checked_at", null: false
+    t.datetime "review_due_at"
+    t.uuid "reviewed_by_id"
+    t.uuid "supersedes_id"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_connector_certifications_on_account_id"
+    t.index ["family_id", "provider_key", "institution_key", "checked_at"], name: "idx_connector_certifications_lookup"
+    t.index ["family_id"], name: "index_connector_certifications_on_family_id"
+    t.index ["reviewed_by_id"], name: "index_connector_certifications_on_reviewed_by_id"
+    t.index ["supersedes_id"], name: "idx_connector_certifications_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
+    t.index ["supersedes_id"], name: "index_connector_certifications_on_supersedes_id"
+    t.check_constraint "environment::text = ANY (ARRAY['sandbox'::character varying::text, 'demo'::character varying::text, 'production'::character varying::text])", name: "chk_connector_certifications_environment"
+    t.check_constraint "evidence_sha256::text ~ '^[0-9a-f]{64}$'::text", name: "chk_connector_certifications_sha"
+    t.check_constraint "status::text = ANY (ARRAY['passed'::character varying::text, 'failed'::character varying::text])", name: "chk_connector_certifications_status"
+  end
+
   create_table "credit_cards", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.decimal "annual_fee", precision: 10, scale: 2
     t.decimal "apr", precision: 10, scale: 2
@@ -587,6 +618,50 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
     t.string "subtype"
     t.string "tax_treatment", default: "taxable", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "ctrader_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "ctrader_item_id", null: false
+    t.bigint "ctid_trader_account_id", null: false
+    t.bigint "trader_login"
+    t.boolean "is_live", default: false, null: false
+    t.string "broker_name"
+    t.string "currency", limit: 3
+    t.integer "money_digits"
+    t.decimal "balance", precision: 19, scale: 4
+    t.decimal "equity", precision: 19, scale: 4
+    t.decimal "used_margin", precision: 19, scale: 4
+    t.decimal "free_margin", precision: 19, scale: 4
+    t.jsonb "raw_payload", default: {}, null: false
+    t.jsonb "raw_positions_payload", default: [], null: false
+    t.jsonb "raw_orders_payload", default: [], null: false
+    t.jsonb "raw_deals_payload", default: [], null: false
+    t.jsonb "raw_cash_flows_payload", default: [], null: false
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ctrader_item_id", "ctid_trader_account_id"], name: "idx_ctrader_accounts_item_account", unique: true
+    t.index ["ctrader_item_id"], name: "index_ctrader_accounts_on_ctrader_item_id"
+  end
+
+  create_table "ctrader_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "name", default: "cTrader", null: false
+    t.string "environment", default: "demo", null: false
+    t.string "status", default: "good", null: false
+    t.text "oauth_access_token"
+    t.text "oauth_refresh_token"
+    t.datetime "oauth_token_expires_at"
+    t.string "permission_scope"
+    t.jsonb "raw_accounts_payload", default: [], null: false
+    t.datetime "last_synced_at"
+    t.boolean "scheduled_for_deletion", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "environment"], name: "idx_ctrader_items_family_environment"
+    t.index ["family_id"], name: "index_ctrader_items_on_family_id"
+    t.check_constraint "environment::text = ANY (ARRAY['demo'::character varying::text, 'live'::character varying::text])", name: "chk_ctrader_items_environment"
+    t.check_constraint "status::text = ANY (ARRAY['good'::character varying::text, 'requires_update'::character varying::text])", name: "chk_ctrader_items_status"
   end
 
   create_table "data_enrichments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3373,6 +3448,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
   add_foreign_key "coinspot_items", "families"
   add_foreign_key "coinstats_accounts", "coinstats_items"
   add_foreign_key "coinstats_items", "families"
+  add_foreign_key "connector_certifications", "accounts", on_delete: :nullify
+  add_foreign_key "connector_certifications", "connector_certifications", column: "supersedes_id", on_delete: :nullify
+  add_foreign_key "connector_certifications", "families", on_delete: :cascade
+  add_foreign_key "ctrader_accounts", "ctrader_items", on_delete: :cascade
+  add_foreign_key "ctrader_items", "families", on_delete: :cascade
   add_foreign_key "debug_log_entries", "account_providers", on_delete: :nullify
   add_foreign_key "debug_log_entries", "accounts", on_delete: :nullify
   add_foreign_key "debug_log_entries", "families", on_delete: :nullify
@@ -3560,6 +3640,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_08_210000) do
   add_foreign_key "source_identities", "raw_source_records", on_delete: :nullify
   add_foreign_key "source_identities", "source_identities", column: "supersedes_id", on_delete: :nullify
 
+  add_foreign_key "connector_certifications", "users", column: "reviewed_by_id", on_delete: :nullify
   add_foreign_key "daily_close_snapshots", "families", on_delete: :cascade
   add_foreign_key "investment_recommendations", "families", on_delete: :cascade
   add_foreign_key "investment_recommendations", "research_assessments", on_delete: :cascade

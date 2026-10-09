@@ -90,3 +90,26 @@ Income-at-Risk is a deterministic policy-stress output captured in the authorita
 - Undated income is excluded from the dated 365-day baseline and surfaced separately.
 - FX translation reuses authoritative close-date normalized FX rules; no silent 1:1 conversion is permitted.
 - Historical snapshots created before Phase 8 are not backfilled from live/current data.
+
+
+## Production connector certification controls
+
+Connector availability and connector production approval are separate states.
+
+- Provider documentation alone cannot create a production PASS.
+- Production PASS is deterministic from the provider profile, required checks and evidence.
+- Every required check must be true and have evidence.
+- Production certification requires an authorized family-administrator reviewer.
+- Review horizons are bounded by provider policy; missing/expired review fails closed.
+- A later failed production certification overrides an earlier pass.
+- Certification records are immutable and evidence is SHA-256 digested.
+- Credential-bearing evidence keys are rejected.
+- Connector certification never grants broader OAuth/API permissions.
+
+For cTrader specifically:
+
+- OAuth scope is `accounts` only.
+- The returned token account list must report `SCOPE_VIEW`.
+- `SCOPE_TRADE` is rejected.
+- The provider request layer uses a positive allowlist; write/unknown messages fail closed.
+- Raw provider facts are isolated from canonical financial-record mutation until reconciliation/authority rules explicitly permit normalization.

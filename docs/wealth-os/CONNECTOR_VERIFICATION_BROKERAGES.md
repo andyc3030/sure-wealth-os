@@ -138,3 +138,43 @@ Add a dedicated cTrader provider adapter that can read, where exposed by the API
 - revocation prevents further access;
 - token refresh works without broadening scope;
 - no trading operation is reachable through the adapter, service layer or AI/MCP.
+
+
+## Phase 9 cTrader implementation
+
+Wealth OS now contains a dedicated cTrader backend with these boundaries:
+
+- OAuth granting URL always requests `scope=accounts`;
+- token refresh invalidates the previously observed permission until account-list permission is checked again;
+- account discovery accepts only `SCOPE_VIEW`;
+- `SCOPE_TRADE` is rejected;
+- request messages are allowlisted;
+- new-order, cancel-order, amend-order, amend-position and close-position request payloads are explicitly forbidden;
+- demo and live endpoints are separate;
+- JSON WebSocket transport uses port 5036;
+- historical calls are throttled to the documented historical request rate;
+- cash-flow history is segmented to the API's seven-day maximum;
+- deal/order `hasMore` responses are recursively split/refetched rather than silently truncated;
+- imported account/exposure/history payloads are stored as immutable cTrader raw-source facts;
+- provider snapshots do not automatically become canonical Sure balances, holdings or transactions.
+
+The public cTrader connection configuration intentionally remains disabled in Phase 9. Real UI activation is a later operational step after demo validation and a current, passed production certification for the intended IC Markets account.
+
+### Required IC Markets live evidence
+
+The production certification must include evidence for:
+
+- institution identity;
+- exact cTrader account identity;
+- balance and equity reconciliation;
+- current positions and volumes;
+- pending orders as read-only exposure;
+- historical deals;
+- commission and swap/financing visibility;
+- cash flows;
+- `SCOPE_VIEW` permission;
+- permission remaining view-only after token refresh;
+- reconnect deduplication;
+- token revocation stopping access;
+- reconciliation against cTrader/source records;
+- proof that no trading request is reachable.
