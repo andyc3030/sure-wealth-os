@@ -27,7 +27,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -60,6 +60,7 @@ jobs:
           bin/rails db:create
           bin/rails db:schema:load
           bin/rails db:seed
+          bin/rails db:fixtures:load
 
       - name: Fingerprint source database
         shell: bash
@@ -167,7 +168,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -200,6 +201,7 @@ jobs:
           bin/rails db:create
           bin/rails db:schema:load
           bin/rails db:seed
+          bin/rails db:fixtures:load
 
           bin/rails runner '
             raise "expected current Wealth OS migration is not applied" unless ActiveRecord::Base.connection.select_value("SELECT MAX(version) FROM schema_migrations").to_i == 20261009010000
