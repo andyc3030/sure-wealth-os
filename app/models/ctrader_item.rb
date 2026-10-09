@@ -2,6 +2,7 @@
 
 class CtraderItem < ApplicationRecord
   include Encryptable
+  include Syncable
 
   enum :environment, { demo: "demo", live: "live" }, default: :demo
   enum :status, { good: "good", requires_update: "requires_update" }, default: :good
@@ -30,8 +31,14 @@ class CtraderItem < ApplicationRecord
       oauth_access_token: access_token,
       oauth_refresh_token: refresh_token,
       oauth_token_expires_at: payload["expiresIn"].present? ?
-        Time.current + payload["expiresIn"].to_i.seconds : oauth_token_expires_at
+        Time.current + payload["expiresIn"].to_i.seconds : oauth_token_expires_at,
+      permission_scope: nil
     )
+  end
+
+  def refresh_oauth_tokens!
+    payload = Provider::Ctrader.refresh_tokens(refresh_token: oauth_refresh_token)
+    apply_oauth_tokens!(payload)
   end
 
   def oauth_token_active?
