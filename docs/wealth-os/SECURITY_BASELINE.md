@@ -79,3 +79,14 @@ Research intelligence may analyze, challenge, advise and recommend, but remains 
 - Deterministic evidence and technical-entry gates cannot be waived by the LLM.
 - Failed evidence gates must surface insufficient evidence rather than unsupported inference.
 - Research conclusions must never silently replace authoritative accounting values.
+
+## Income resilience controls
+
+Income-at-Risk is a deterministic policy-stress output captured in the authoritative daily close.
+
+- It is not statistical Value-at-Risk and carries no probabilistic confidence claim.
+- State and confidence retention factors are code-defined and must be exposed through provenance.
+- AI may explain captured policy stress but must not substitute arbitrary model-generated haircuts.
+- Undated income is excluded from the dated 365-day baseline and surfaced separately.
+- FX translation reuses authoritative close-date normalized FX rules; no silent 1:1 conversion is permitted.
+- Historical snapshots created before Phase 8 are not backfilled from live/current data.
