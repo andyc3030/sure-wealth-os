@@ -90,6 +90,39 @@ class WealthOs::DailyClose::IncomeRiskBuilderTest < ActiveSupport::TestCase
     assert_equal BigDecimal("-25"), result.stressed_net_cash
   end
 
+  test "fails loudly when risk and forecast populations diverge" do
+    IncomeEvent.create!(
+      family: @family,
+      canonical_key: "mismatch-income",
+      state: "forecast",
+      income_type: "interest",
+      gross_amount: 100,
+      currency: "GBP",
+      expected_on: @date + 10.days,
+      confidence: "confirmed"
+    )
+
+    horizons = WealthOs::DailyClose::ForecastBuilder::HORIZONS.index_with do |days|
+      {
+        "through_date" => (@date + days.days).iso8601,
+        "income" => BigDecimal("0"),
+        "liability_payments" => BigDecimal("0"),
+        "net_cash" => BigDecimal("0")
+      }
+    end
+    forecast = WealthOs::DailyClose::ForecastBuilder::Result.new(horizons, 0)
+
+    assert_raises(WealthOs::DailyClose::IncomeRiskBuilder::BaselineMismatch) do
+      WealthOs::DailyClose::IncomeRiskBuilder.new(
+        family: @family,
+        close_date: @date,
+        reporting_currency: "GBP",
+        fx_resolver: @resolver,
+        forecast: forecast
+      ).call
+    end
+  end
+
   test "unknown confidence retains zero stressed income" do
     IncomeEvent.create!(
       family: @family,
@@ -122,6 +155,13 @@ class WealthOs::DailyClose::IncomeRiskBuilderTest < ActiveSupport::TestCase
           "net_cash" => BigDecimal("0")
         }
       end
+      dated_income = IncomeEvent.where(family_id: @family.id, state: %w[forecast accrued declared]).sum do |event|
+        due = event.payable_on || event.expected_on || event.accrual_end_date
+        next BigDecimal("0") unless due && due > @date && due <= @date + 365.days
+
+        event.net_amount.to_d
+      end
+      horizons.fetch(365)["income"] = dated_income
       forecast = WealthOs::DailyClose::ForecastBuilder::Result.new(horizons, 0)
 
       WealthOs::DailyClose::IncomeRiskBuilder.new(
