@@ -3,6 +3,8 @@
 module WealthOs
   module DailyClose
     class IncomeRiskBuilder
+      BaselineMismatch = Class.new(StandardError)
+
       STATE_RETENTION = {
         "forecast" => BigDecimal("0.70"),
         "accrued" => BigDecimal("0.90"),
@@ -76,6 +78,12 @@ module WealthOs
         end
 
         baseline = sum_rows(dated_rows, "reporting_amount")
+        expected_baseline = forecast.horizons.fetch(365).fetch("income").to_d
+        unless baseline == expected_baseline
+          raise BaselineMismatch,
+            "income-risk baseline #{baseline.to_s("F")} does not match 365-day forecast #{expected_baseline.to_s("F")}"
+        end
+
         stressed = sum_rows(dated_rows, "stressed_amount")
         at_risk = baseline - stressed
         liabilities = forecast.horizons.fetch(365).fetch("liability_payments").to_d
