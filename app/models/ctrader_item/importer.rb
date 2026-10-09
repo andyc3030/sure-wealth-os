@@ -22,11 +22,10 @@ class CtraderItem::Importer
     ctrader_item.update!(
       permission_scope: account_list.fetch("permission_scope"),
       raw_accounts_payload: accounts,
-      last_synced_at: observed_at,
       status: :good
     )
 
-    accounts.map do |account_row|
+    imported = accounts.map do |account_row|
       import_account(
         account_row,
         from_timestamp: timestamp_ms(from_timestamp),
@@ -34,6 +33,9 @@ class CtraderItem::Importer
         observed_at: observed_at
       )
     end
+
+    ctrader_item.update!(last_synced_at: observed_at)
+    imported
   rescue Provider::Ctrader::PermissionError, Provider::Ctrader::AuthenticationError
     ctrader_item.update!(status: :requires_update)
     raise
