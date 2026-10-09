@@ -106,6 +106,32 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
     assert_equal "certification_review_overdue", expired.reason
   end
 
+  test "production gate fails if reviewer is removed after certification" do
+    checks = @profile.required_checks.index_with { true }
+    evidence = @profile.required_checks.index_with { |key| "evidence for #{key}" }
+
+    certification = WealthOs::Connectors::CertificationEvaluator.call(
+      family: @family,
+      provider_key: "ctrader",
+      institution_key: "ic_markets",
+      environment: "production",
+      reviewed_by: @reviewer,
+      observed_scope: "accounts",
+      checks: checks,
+      evidence: evidence
+    )
+    certification.update_column(:reviewed_by_id, nil)
+
+    result = WealthOs::Connectors::ProductionGate.call(
+      family: @family,
+      provider_key: "ctrader",
+      institution_key: "ic_markets"
+    )
+
+    assert_equal false, result.approved
+    assert_equal "certification_reviewer_missing", result.reason
+  end
+
   test "a later failed certification revokes earlier approval" do
     checks = @profile.required_checks.index_with { true }
     evidence = @profile.required_checks.index_with { |key| "evidence for #{key}" }
