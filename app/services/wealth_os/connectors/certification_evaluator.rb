@@ -28,6 +28,7 @@ module WealthOs
           route_type: profile.route_type,
           environment: environment.to_s,
           status: result.fetch(:passed) ? "passed" : "failed",
+          reviewed_by: reviewed_by,
           expected_scope: profile.expected_scope,
           observed_scope: observed_scope.to_s,
           checks: checks.to_h.stringify_keys.merge(
