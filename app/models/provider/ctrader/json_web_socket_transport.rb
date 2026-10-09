@@ -117,6 +117,8 @@ class Provider::Ctrader::JsonWebSocketTransport
 
         deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + open_timeout
         until @open
+          raise @connection_error if @connection_error
+
           remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
           raise Provider::Ctrader::Error, "cTrader WebSocket handshake timed out" if remaining <= 0
 
