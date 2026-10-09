@@ -17,7 +17,8 @@ module WealthOs
           family_id: family.id,
           account_id: account&.id,
           provider_key: provider_key.to_s,
-          institution_key: institution_key.to_s
+          institution_key: institution_key.to_s,
+          environment: environment.to_s
         ).latest_first.first
 
         ConnectorCertification.create!(
