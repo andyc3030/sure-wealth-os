@@ -21,7 +21,7 @@ module WealthOs
         :snapshot_id, :close_date, :cutoff_at, :reporting_currency, :quality_status, :confidence,
         :gross_assets, :total_liabilities, :net_worth,
         :liquid_assets, :liquid_net_worth, :investable_assets, :investable_net_worth,
-        :income_by_state, :income_equivalents, :cash_forecasts, :data_completeness,
+        :income_by_state, :income_equivalents, :income_resilience, :cash_forecasts, :data_completeness,
         :classification_policy, :action_now, :performance
       ) do
         def as_json(*)
@@ -41,6 +41,9 @@ module WealthOs
             "investable_net_worth" => decimal_string(investable_net_worth),
             "income_by_state" => income_by_state.transform_values { |value| value.to_s("F") },
             "income_equivalents" => income_equivalents.transform_values { |value|
+              value.is_a?(BigDecimal) ? value.to_s("F") : value
+            },
+            "income_resilience" => income_resilience.transform_values { |value|
               value.is_a?(BigDecimal) ? value.to_s("F") : value
             },
             "cash_forecasts" => cash_forecasts.transform_keys(&:to_s).transform_values { |row|
@@ -92,6 +95,7 @@ module WealthOs
         end
 
         cash_forecasts = build_cash_forecasts(payload)
+        income_resilience = build_income_resilience(payload)
         annual_income = cash_forecasts.fetch(365).fetch("income")
         quality_details = payload.dig("quality", "details") || {}
 
@@ -108,6 +112,7 @@ module WealthOs
             "monthly" => annual_income / 12,
             "daily" => annual_income / 365
           }.freeze,
+          income_resilience.freeze,
           cash_forecasts.freeze,
           {
             "valuation_account_count" => rows.size,
@@ -131,6 +136,31 @@ module WealthOs
       private
         attr_reader :snapshot
 
+        def build_income_resilience(payload)
+          raw = payload["income_risk"]
+          return {
+            "available" => false,
+            "reason" => "legacy_snapshot_without_phase8_income_risk"
+          } unless raw.present?
+
+          {
+            "available" => true,
+            "model" => raw["model"],
+            "statistical_var" => raw["statistical_var"],
+            "baseline_income" => decimal(raw["baseline_income"]),
+            "stressed_income" => decimal(raw["stressed_income"]),
+            "income_at_risk" => decimal(raw["income_at_risk"]),
+            "sustainability_ratio" => decimal_or_nil(raw["sustainability_ratio"]),
+            "scheduled_liabilities" => decimal(raw["scheduled_liabilities"]),
+            "stressed_net_cash" => decimal(raw["stressed_net_cash"]),
+            "undated_income_count" => raw["undated_income_count"].to_i,
+            "undated_income_amount" => decimal(raw["undated_income_amount"]),
+            "top_source_share" => decimal_or_nil(raw["top_source_share"]),
+            "concentration_hhi" => decimal(raw["concentration_hhi"]),
+            "policy" => raw["policy"] || {}
+          }
+        end
+
         def build_cash_forecasts(payload)
           raw = payload.dig("forecast", "horizons") || {}
           WealthOs::DailyClose::ForecastBuilder::HORIZONS.to_h do |days|
@@ -152,6 +182,10 @@ module WealthOs
 
         def decimal(value)
           value.to_s.to_d
+        end
+
+        def decimal_or_nil(value)
+          value.nil? ? nil : decimal(value)
         end
     end
   end
