@@ -23,6 +23,8 @@ class ConnectorCertification < ApplicationRecord
   validate :account_matches_family
   validate :superseded_record_matches_route
   validate :evidence_contains_no_secret_keys
+  validate :matches_deterministic_policy
+  validate :review_horizon_is_bounded
 
   before_validation :normalize_evidence_and_digest, on: :create
   before_update :prevent_mutation
@@ -33,7 +35,8 @@ class ConnectorCertification < ApplicationRecord
   def production_approved?(at: Time.current)
     passed? &&
       environment == "production" &&
-      (review_due_at.nil? || review_due_at >= at)
+      review_due_at.present? &&
+      review_due_at >= at
   end
 
   def passed?
@@ -62,6 +65,39 @@ class ConnectorCertification < ApplicationRecord
         supersedes.account_id == account_id
 
       errors.add(:supersedes, "must certify the same family/provider/institution/account route")
+    end
+
+    def matches_deterministic_policy
+      profile = WealthOs::Connectors::CertificationPolicy.profile!(provider_key)
+      result = WealthOs::Connectors::CertificationPolicy.evaluate(
+        provider_key: provider_key,
+        observed_scope: observed_scope,
+        checks: checks || {},
+        evidence: evidence || {}
+      )
+      expected_status = result.fetch(:passed) ? "passed" : "failed"
+
+      errors.add(:route_type, "must match certification policy") unless route_type == profile.route_type
+      errors.add(:expected_scope, "must match certification policy") unless expected_scope == profile.expected_scope
+      errors.add(:status, "must equal deterministic policy result #{expected_status}") unless status == expected_status
+    rescue ArgumentError
+      errors.add(:provider_key, "is not a supported certification profile")
+    end
+
+    def review_horizon_is_bounded
+      return if checked_at.blank?
+
+      profile = WealthOs::Connectors::CertificationPolicy.profile!(provider_key)
+      if review_due_at.blank?
+        errors.add(:review_due_at, "is required")
+        return
+      end
+
+      errors.add(:review_due_at, "must be after checked_at") unless review_due_at > checked_at
+      maximum = checked_at + profile.review_interval_days.days
+      errors.add(:review_due_at, "cannot exceed policy review interval") if review_due_at > maximum
+    rescue ArgumentError
+      nil
     end
 
     def evidence_contains_no_secret_keys
