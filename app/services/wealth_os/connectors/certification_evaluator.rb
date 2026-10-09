@@ -4,7 +4,7 @@ module WealthOs
   module Connectors
     class CertificationEvaluator
       def self.call(family:, provider_key:, institution_key:, environment:, observed_scope:,
-                    checks:, evidence:, account: nil, checked_at: Time.current, notes: nil)
+                    checks:, evidence:, account: nil, reviewed_by: nil, checked_at: Time.current, notes: nil)
         profile = CertificationPolicy.profile!(provider_key)
         result = CertificationPolicy.evaluate(
           provider_key: provider_key,
