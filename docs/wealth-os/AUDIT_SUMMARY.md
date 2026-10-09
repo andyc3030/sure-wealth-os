@@ -55,3 +55,22 @@ Sure remains the application chassis for:
 - existing money-weighted return and loan-amortization capabilities.
 
 The Wealth OS fork extends and hardens these rather than replacing them.
+
+## Implementation status after Phase 8
+
+The baseline audit remains a historical classification of the pinned upstream commit. Current implementation status is tracked separately here.
+
+Resolved/high-priority foundations now include:
+
+- field-specific source precedence and conflict resolution — Phase 3;
+- immutable RAW → NORMALIZED → DERIVED provenance — Phase 3;
+- fixed authoritative daily reporting cut-off — Phase 5;
+- four-state income engine — Phase 4;
+- explicit income confidence — Phase 4;
+- income sustainability and deterministic Income-at-Risk — Phase 8;
+- split/reverse-split corporate-action accounting foundation — Phase 4;
+- performance and net-worth attribution — Phase 4;
+- authoritative snapshot confidence and exception reporting — Phases 5–6;
+- controlled read-only AI/MCP execution order — Phases 1, 5–8.
+
+Remaining production work includes live connector certification and broader corporate-action coverage beyond the currently supported deterministic split/reverse-split path.
