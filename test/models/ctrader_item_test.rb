@@ -28,6 +28,24 @@ class CtraderItemTest < ActiveSupport::TestCase
     assert_operator @item.oauth_token_expires_at, :>, 50.minutes.from_now
   end
 
+  test "syncable scope excludes unauthorized and deletion-pending items" do
+    unauthorized = CtraderItem.create!(
+      family: families(:dylan_family),
+      name: "Unauthorized cTrader",
+      environment: "demo"
+    )
+
+    assert_includes CtraderItem.syncable, @item
+    assert_not_includes CtraderItem.syncable, unauthorized
+
+    @item.update_column(:scheduled_for_deletion, true)
+    assert_not_includes CtraderItem.syncable, @item
+  end
+
+  test "standard provider deletion concern is available" do
+    assert_respond_to @item, :destroy_later
+  end
+
   test "trade permission can never be persisted as the observed scope" do
     @item.permission_scope = "SCOPE_TRADE"
 
