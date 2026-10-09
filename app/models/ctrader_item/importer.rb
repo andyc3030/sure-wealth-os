@@ -52,19 +52,24 @@ class CtraderItem::Importer
         access_token: ctrader_item.oauth_access_token
       )
 
-      trader = gateway.trader(ctid_trader_account_id: account_id)
+      trader_response = gateway.trader(ctid_trader_account_id: account_id)
+      trader = trader_response.fetch("trader").to_h.stringify_keys
       assets = gateway.asset_list(ctid_trader_account_id: account_id)
       reconciliation = gateway.reconcile(ctid_trader_account_id: account_id)
       pnl = gateway.position_unrealized_pnl(ctid_trader_account_id: account_id)
-      deals = gateway.deals(
-        ctid_trader_account_id: account_id,
+      deals = fetch_history(
+        :deals,
+        account_id,
         from_timestamp: from_timestamp,
-        to_timestamp: to_timestamp
+        to_timestamp: to_timestamp,
+        collection_key: "deal"
       )
-      orders = gateway.orders(
-        ctid_trader_account_id: account_id,
+      orders = fetch_history(
+        :orders,
+        account_id,
         from_timestamp: from_timestamp,
-        to_timestamp: to_timestamp
+        to_timestamp: to_timestamp,
+        collection_key: "order"
       )
       cash_flows = fetch_cash_flows(
         account_id,
@@ -105,7 +110,7 @@ class CtraderItem::Importer
         ),
         raw_positions_payload: sanitize(positions),
         raw_orders_payload: sanitize(current_orders.presence || Array(orders["order"])),
-        raw_deals_payload: sanitize(Array(deals["deal"])),
+        raw_deals_payload: sanitize(deals),
         raw_cash_flows_payload: sanitize(cash_flows),
         last_synced_at: observed_at
       )
@@ -114,13 +119,13 @@ class CtraderItem::Importer
       capture_raw_source_records!(
         account,
         observed_at: observed_at,
-        orders: orders
+        historical_orders: orders
       )
 
       account
     end
 
-    def capture_raw_source_records!(ctrader_account, observed_at:, orders:)
+    def capture_raw_source_records!(ctrader_account, observed_at:, historical_orders:)
       family = ctrader_item.family
       linked = ctrader_account.current_account
       account_provider = ctrader_account.account_provider
@@ -129,7 +134,7 @@ class CtraderItem::Importer
         "account_snapshot" => ctrader_account.raw_payload,
         "open_positions" => ctrader_account.raw_positions_payload,
         "pending_orders" => ctrader_account.raw_orders_payload,
-        "historical_orders" => sanitize(Array(orders["order"])),
+        "historical_orders" => sanitize(historical_orders),
         "historical_deals" => ctrader_account.raw_deals_payload,
         "cash_flows" => ctrader_account.raw_cash_flows_payload
       }.each do |record_type, payload|
@@ -149,6 +154,50 @@ class CtraderItem::Importer
           }.compact
         )
       end
+    end
+
+    def fetch_history(method_name, account_id, from_timestamp:, to_timestamp:, collection_key:)
+      return [] if to_timestamp < from_timestamp
+
+      response = gateway.public_send(
+        method_name,
+        ctid_trader_account_id: account_id,
+        from_timestamp: from_timestamp,
+        to_timestamp: to_timestamp
+      )
+      rows = Array(response[collection_key])
+      return rows unless response["hasMore"] == true
+
+      if from_timestamp >= to_timestamp
+        raise Provider::Ctrader::Error,
+              "cTrader #{method_name} history remains truncated at a single timestamp"
+      end
+
+      midpoint = from_timestamp + ((to_timestamp - from_timestamp) / 2)
+      left = fetch_history(
+        method_name,
+        account_id,
+        from_timestamp: from_timestamp,
+        to_timestamp: midpoint,
+        collection_key: collection_key
+      )
+      right = fetch_history(
+        method_name,
+        account_id,
+        from_timestamp: midpoint + 1,
+        to_timestamp: to_timestamp,
+        collection_key: collection_key
+      )
+
+      dedupe_history(left + right)
+    end
+
+    def dedupe_history(rows)
+      rows.each_with_object({}) do |row, by_identity|
+        value = row.to_h.stringify_keys
+        identity = value["dealId"] || value["orderId"] || RawSourceRecord.digest_for(value)
+        by_identity[identity.to_s] = value
+      end.values
     end
 
     def fetch_cash_flows(account_id, from_timestamp:, to_timestamp:)
