@@ -69,6 +69,13 @@ module WealthOs
           reporting_currency: reporting_currency,
           fx_resolver: fx_resolver
         ).call
+        income_risk = IncomeRiskBuilder.new(
+          family: family,
+          close_date: close_date,
+          reporting_currency: reporting_currency,
+          fx_resolver: fx_resolver,
+          forecast: forecast
+        ).call
         quality = QualityAssessor.new(
           family: family,
           close_date: close_date,
@@ -87,7 +94,7 @@ module WealthOs
         ).call
 
         payload = {
-          "schema_version" => 1,
+          "schema_version" => 2,
           "close_date" => close_date.iso8601,
           "cutoff_at" => cutoff_at.iso8601,
           "timezone" => timezone,
@@ -97,6 +104,7 @@ module WealthOs
           "income_and_liabilities" => ledger.as_json,
           "performance" => performance,
           "forecast" => forecast.as_json,
+          "income_risk" => income_risk.as_json,
           "quality" => quality.as_json,
           "provenance" => provenance,
           "action_now" => action_now
@@ -115,7 +123,7 @@ module WealthOs
           total_liabilities: valuation.total_liabilities,
           net_worth: valuation.net_worth,
           payload: payload,
-          schema_version: 1
+          schema_version: 2
         )
       end
 
@@ -139,6 +147,7 @@ module WealthOs
             "income_liabilities" => { "status" => "complete" },
             "performance" => { "status" => "complete" },
             "forecast" => { "status" => "complete" },
+            "income_risk" => { "status" => "complete", "model" => "deterministic_income_stress" },
             "quality" => { "status" => quality.status },
             "snapshot" => { "status" => "immutable" },
             "action_now" => { "status" => "deterministic" }

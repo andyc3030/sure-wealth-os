@@ -54,6 +54,20 @@ class WealthOs::Dashboard::SummaryBuilderTest < ActiveSupport::TestCase
     assert_equal 1, result.data_completeness.fetch("unclassified_snapshot_accounts")
   end
 
+  test "exposes deterministic income resilience metrics from the immutable close" do
+    snapshot = capture_snapshot(valuation_rows: [])
+    result = WealthOs::Dashboard::SummaryBuilder.call(snapshot: snapshot)
+
+    assert_equal true, result.income_resilience.fetch("available")
+    assert_equal "deterministic_income_stress", result.income_resilience.fetch("model")
+    assert_equal false, result.income_resilience.fetch("statistical_var")
+    assert_equal BigDecimal("1200"), result.income_resilience.fetch("baseline_income")
+    assert_equal BigDecimal("900"), result.income_resilience.fetch("stressed_income")
+    assert_equal BigDecimal("300"), result.income_resilience.fetch("income_at_risk")
+    assert_equal BigDecimal("0.75"), result.income_resilience.fetch("sustainability_ratio")
+    assert_equal BigDecimal("600"), result.income_resilience.fetch("stressed_net_cash")
+  end
+
   test "derives annual monthly and daily equivalents from the 365 day contractual forecast" do
     snapshot = capture_snapshot(valuation_rows: [])
     result = WealthOs::Dashboard::SummaryBuilder.call(snapshot: snapshot)
@@ -112,6 +126,21 @@ class WealthOs::Dashboard::SummaryBuilderTest < ActiveSupport::TestCase
               "365" => forecast_row(365, 1_200, 300)
             },
             "undated_income_count" => 1
+          },
+          "income_risk" => {
+            "model" => "deterministic_income_stress",
+            "statistical_var" => false,
+            "baseline_income" => "1200",
+            "stressed_income" => "900",
+            "income_at_risk" => "300",
+            "sustainability_ratio" => "0.75",
+            "scheduled_liabilities" => "300",
+            "stressed_net_cash" => "600",
+            "undated_income_count" => 1,
+            "undated_income_amount" => "50",
+            "top_source_share" => "0.4",
+            "concentration_hhi" => "0.3",
+            "policy" => { "description" => "deterministic stress retention; not probabilistic VaR" }
           },
           "quality" => {
             "details" => {

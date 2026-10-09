@@ -12,7 +12,9 @@ module WealthOs
         forecast_7_income forecast_7_liabilities forecast_7_net
         forecast_30_income forecast_30_liabilities forecast_30_net
         forecast_90_income forecast_90_liabilities forecast_90_net
-        forecast_365_income forecast_365_liabilities forecast_365_net confidence
+        forecast_365_income forecast_365_liabilities forecast_365_net
+        income_baseline_365 income_stressed_365 income_at_risk_365
+        income_sustainability_ratio income_stressed_net_cash_365 confidence
       ].freeze
 
       def self.call(snapshot:, metric:)
@@ -38,7 +40,8 @@ module WealthOs
           "value" => serialized_value(detail.fetch(:value)),
           "calculation" => detail.fetch(:calculation),
           "components" => detail.fetch(:components),
-          "lineage_status" => manifest.present? ? "captured_at_close" : "legacy_snapshot_without_phase6_manifest"
+          "lineage_status" => detail[:lineage_status] ||
+            (manifest.present? ? "captured_at_close" : "legacy_snapshot_without_phase6_manifest")
         }
       end
 
@@ -97,6 +100,31 @@ module WealthOs
               ]
             end
             monetary_detail(value, calculation, forecast_components(days))
+          when "income_baseline_365"
+            income_risk_detail(
+              "baseline_income",
+              "sum dated forecast/accrued/declared income due in the next 365 days before stress"
+            )
+          when "income_stressed_365"
+            income_risk_detail(
+              "stressed_income",
+              "sum baseline income after deterministic state and confidence retention factors"
+            )
+          when "income_at_risk_365"
+            income_risk_detail(
+              "income_at_risk",
+              "365-day baseline income minus deterministic stressed retained income"
+            )
+          when "income_sustainability_ratio"
+            income_risk_detail(
+              "sustainability_ratio",
+              "deterministic stressed retained income divided by 365-day baseline income"
+            )
+          when "income_stressed_net_cash_365"
+            income_risk_detail(
+              "stressed_net_cash",
+              "deterministic stressed retained income minus scheduled 365-day liability payments"
+            )
           when "confidence"
             { value: summary.confidence,
               calculation: "deterministic Phase 5 quality gate confidence: PASS 1.00, WARNING 0.75",
@@ -105,6 +133,33 @@ module WealthOs
           else
             raise UnsupportedMetric, "unsupported authoritative metric: #{metric}"
           end
+        end
+
+        def income_risk_detail(key, calculation)
+          risk = snapshot.payload["income_risk"]
+          return {
+            value: nil,
+            calculation: "unavailable: this snapshot predates Phase 8 income resilience capture",
+            components: { "reason" => "legacy_snapshot_without_phase8_income_risk" },
+            lineage_status: "legacy_snapshot_without_phase8_income_risk"
+          } unless risk.present?
+
+          value = summary.income_resilience.fetch(key)
+          {
+            value: value,
+            calculation: calculation,
+            components: {
+              "model" => risk["model"],
+              "statistical_var" => risk["statistical_var"],
+              "policy" => risk["policy"] || {},
+              "events" => Array(risk["events"]),
+              "source_breakdown" => Array(risk["source_breakdown"]),
+              "undated_income_count" => risk["undated_income_count"],
+              "undated_income_amount" => risk["undated_income_amount"],
+              "scheduled_liabilities" => risk["scheduled_liabilities"]
+            },
+            lineage_status: "captured_at_close"
+          }
         end
 
         def monetary_detail(value, calculation, components)

@@ -54,6 +54,7 @@ class AssistantConfigurableTest < ActiveSupport::TestCase
     assert_includes instructions, "retrieve its metric provenance"
     assert_includes instructions, "only explain stored Wealth OS recommendations"
     assert_includes instructions, "Never invent a new recommendation"
+    assert_includes instructions, "Never describe them as statistical VaR"
     assert_operator instructions.index("## Mandatory security rules"), :>, instructions.index("CUSTOM IDENTITY")
     assert_operator instructions.index("## Session context"), :>, instructions.index("## Mandatory security rules")
   end

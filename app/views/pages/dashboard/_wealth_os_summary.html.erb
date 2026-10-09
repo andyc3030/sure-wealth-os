@@ -82,6 +82,54 @@
     </div>
   </div>
 
+  <% risk = summary.income_resilience %>
+  <div class="rounded-xl bg-container-inset p-4 space-y-3">
+    <div>
+      <h3 class="text-sm font-medium text-primary">Income resilience (365 days)</h3>
+      <p class="text-xs text-secondary">Deterministic stress model; not statistical VaR.</p>
+    </div>
+    <% if risk.fetch("available") %>
+      <% resilience_metrics = [
+           [ "Baseline income", risk.fetch("baseline_income"), "income_baseline_365", :money ],
+           [ "Stressed income", risk.fetch("stressed_income"), "income_stressed_365", :money ],
+           [ "Income-at-Risk", risk.fetch("income_at_risk"), "income_at_risk_365", :money ],
+           [ "Sustainability", risk.fetch("sustainability_ratio"), "income_sustainability_ratio", :percent ],
+           [ "Stressed net cash", risk.fetch("stressed_net_cash"), "income_stressed_net_cash_365", :money ]
+         ] %>
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <% resilience_metrics.each do |label, value, metric, kind| %>
+          <%= link_to provenance_path.call(metric), class: "block rounded-lg bg-container p-3 hover:bg-container-hover transition-colors" do %>
+            <p class="text-xs text-secondary"><%= label %></p>
+            <p class="mt-1 text-base font-medium text-primary privacy-sensitive">
+              <% if kind == :percent %>
+                <%= value.nil? ? "Unavailable" : number_to_percentage(value * 100, precision: 1) %>
+              <% else %>
+                <%= money_for.call(value) %>
+              <% end %>
+            </p>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-secondary">
+        <p>Top-source share:
+          <span class="font-medium text-primary">
+            <%= risk.fetch("top_source_share").nil? ? "Unavailable" :
+                number_to_percentage(risk.fetch("top_source_share") * 100, precision: 1) %>
+          </span>
+        </p>
+        <p>Concentration HHI:
+          <span class="font-medium text-primary"><%= number_with_precision(risk.fetch("concentration_hhi"), precision: 3) %></span>
+        </p>
+        <p>Undated income:
+          <span class="font-medium text-primary privacy-sensitive"><%= money_for.call(risk.fetch("undated_income_amount")) %></span>
+          (<%= risk.fetch("undated_income_count") %> events)
+        </p>
+      </div>
+    <% else %>
+      <p class="text-sm text-secondary">Unavailable for legacy snapshots created before Phase 8.</p>
+    <% end %>
+  </div>
+
   <div class="rounded-xl bg-container-inset p-1 overflow-x-auto">
     <div class="px-3 py-2"><h3 class="text-sm font-medium text-primary">Contractual cash forecast</h3></div>
     <table class="w-full min-w-[560px] text-sm">
