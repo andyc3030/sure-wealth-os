@@ -176,3 +176,41 @@ Phase 7 exit criteria:
 - weekly technical gating fails closed when the near-10W tolerance is absent;
 - research cannot mutate authoritative-close, source, transaction, valuation or execution state;
 - unit/integration, system, lint, dependency and Pipelock security checks are green.
+
+## Phase 8 — Income resilience and Income-at-Risk
+
+Add a deterministic, auditable 365-day income-resilience layer on top of the canonical income ledger and authoritative daily close.
+
+Implemented scope:
+
+- 365-day dated baseline income from forecast / accrued / declared events;
+- explicit state-retention policy: forecast 70%, accrued 90%, declared 100%;
+- explicit confidence-retention policy: confirmed 100%, high 90%, estimated 75%, low 50%, unknown 0%;
+- event-level stressed retained income and Income-at-Risk;
+- aggregate stressed income, Income-at-Risk and sustainability ratio;
+- stressed net cash after scheduled 365-day liability payments;
+- source concentration, top-source share and HHI diagnostics;
+- undated income excluded from the dated baseline and reported separately;
+- close-date normalized FX, using the same fail-loud/staleness behavior as the authoritative close;
+- immutable Phase 8 payload capture in new close schema version 2;
+- dashboard and metric-level provenance;
+- controlled AI explanation with an explicit prohibition on describing the model as statistical VaR, a confidence interval or a probability.
+
+Definitions:
+
+- baseline income = dated net economic income due after the close and within 365 days;
+- stressed income = baseline event amount × state-retention factor × confidence-retention factor;
+- Income-at-Risk = baseline income − stressed income;
+- sustainability ratio = stressed income ÷ baseline income;
+- stressed net cash = stressed income − scheduled 365-day liability payments.
+
+Phase 8 exit criteria:
+
+- the 365-day risk baseline reconciles to the same dated income population used by the contractual forecast;
+- undated income is never silently included in or discarded from the model;
+- every stress factor is code-defined and visible in provenance;
+- zero baseline income produces no fabricated sustainability percentage;
+- no statistical confidence/VaR claim is made;
+- old snapshots remain immutable and report Phase 8 metrics as unavailable;
+- controlled AI explains stored results but cannot invent alternative haircuts;
+- unit/integration, system, lint, dependency and Pipelock security checks are green.
