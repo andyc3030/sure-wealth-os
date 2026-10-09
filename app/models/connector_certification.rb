@@ -46,6 +46,9 @@ class ConnectorCertification < ApplicationRecord
   def production_approved?(at: Time.current)
     passed? &&
       environment == "production" &&
+      reviewed_by.present? &&
+      reviewed_by.family_id == family_id &&
+      (reviewed_by.admin? || reviewed_by.super_admin?) &&
       review_due_at.present? &&
       review_due_at >= at
   end
@@ -73,9 +76,10 @@ class ConnectorCertification < ApplicationRecord
       return if supersedes.family_id == family_id &&
         supersedes.provider_key == provider_key &&
         supersedes.institution_key == institution_key &&
-        supersedes.account_id == account_id
+        supersedes.account_id == account_id &&
+        supersedes.environment == environment
 
-      errors.add(:supersedes, "must certify the same family/provider/institution/account route")
+      errors.add(:supersedes, "must certify the same family/provider/institution/account/environment route")
     end
 
     def matches_deterministic_policy
