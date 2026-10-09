@@ -27,6 +27,25 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
     assert_equal "accounts", certification.expected_scope
     assert_equal true, certification.checks.fetch("_scope_matches")
     assert_equal [], certification.checks.fetch("_missing_checks")
+    assert_equal [], certification.checks.fetch("_missing_evidence")
+  end
+
+  test "fails when a required check has no evidence" do
+    checks = @profile.required_checks.index_with { true }
+    evidence = @profile.required_checks.index_with { |key| "evidence for #{key}" }.except("reconciliation")
+
+    certification = WealthOs::Connectors::CertificationEvaluator.call(
+      family: @family,
+      provider_key: "ctrader",
+      institution_key: "ic_markets",
+      environment: "production",
+      observed_scope: "accounts",
+      checks: checks,
+      evidence: evidence
+    )
+
+    assert_equal "failed", certification.status
+    assert_includes certification.checks.fetch("_missing_evidence"), "reconciliation"
   end
 
   test "fails closed on trading scope or missing checks" do
