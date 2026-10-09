@@ -125,6 +125,37 @@ class CtraderItem::ImporterTest < ActiveSupport::TestCase
     end
   end
 
+  class TruncatedDealsGateway < FakeGateway
+    attr_reader :deal_requests
+
+    def initialize
+      super
+      @deal_requests = 0
+    end
+
+    def deals(ctid_trader_account_id:, from_timestamp:, to_timestamp:)
+      @deal_requests += 1
+      calls << [ :deals, ctid_trader_account_id, from_timestamp, to_timestamp ]
+
+      if @deal_requests == 1
+        {
+          "deal" => [ { "dealId" => 500, "moneyDigits" => 2 } ],
+          "hasMore" => true
+        }
+      else
+        {
+          "deal" => [
+            {
+              "dealId" => from_timestamp,
+              "moneyDigits" => 2
+            }
+          ],
+          "hasMore" => false
+        }
+      end
+    end
+  end
+
   setup do
     @family = families(:dylan_family)
     @gateway = FakeGateway.new
@@ -186,6 +217,23 @@ class CtraderItem::ImporterTest < ActiveSupport::TestCase
 
     # No canonical Sure account is mutated merely because cTrader returned a snapshot.
     assert_nil account.current_account
+  end
+
+  test "splits and refetches truncated deal history instead of accepting partial rows" do
+    gateway = TruncatedDealsGateway.new
+    from_time = Time.zone.parse("2026-10-08 00:00:00")
+    to_time = Time.zone.parse("2026-10-08 00:00:02")
+
+    accounts = @item.import_read_only_snapshot!(
+      gateway: gateway,
+      from_timestamp: from_time,
+      to_timestamp: to_time
+    )
+
+    assert_equal 3, gateway.deal_requests
+    deals = accounts.first.raw_deals_payload
+    assert_equal 2, deals.size
+    assert_not_includes deals.map { |row| row["dealId"] }, 500
   end
 
   test "normalizes Time inputs to Unix milliseconds and chunks cash flow history to seven days" do
