@@ -6,6 +6,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
   setup do
     @family = families(:dylan_family)
     @profile = WealthOs::Connectors::CertificationPolicy.profile!("ctrader")
+    @reviewer = users(:family_admin)
   end
 
   test "passes cTrader only with accounts scope and every required live check" do
@@ -17,6 +18,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
       provider_key: "ctrader",
       institution_key: "ic_markets",
       environment: "production",
+      reviewed_by: @reviewer,
       observed_scope: "accounts",
       checks: checks,
       evidence: evidence,
@@ -39,6 +41,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
       provider_key: "ctrader",
       institution_key: "ic_markets",
       environment: "production",
+      reviewed_by: @reviewer,
       observed_scope: "accounts",
       checks: checks,
       evidence: evidence
@@ -56,6 +59,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
       provider_key: "ctrader",
       institution_key: "ic_markets",
       environment: "production",
+      reviewed_by: @reviewer,
       observed_scope: "trading",
       checks: checks,
       evidence: { "test_run" => "demo/live acceptance evidence" }
@@ -76,6 +80,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
       provider_key: "ctrader",
       institution_key: "ic_markets",
       environment: "production",
+      reviewed_by: @reviewer,
       observed_scope: "accounts",
       checks: checks,
       evidence: evidence,
@@ -110,6 +115,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
       provider_key: "ctrader",
       institution_key: "ic_markets",
       environment: "production",
+      reviewed_by: @reviewer,
       observed_scope: "accounts",
       checks: checks,
       evidence: evidence,
@@ -120,6 +126,7 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
       provider_key: "ctrader",
       institution_key: "ic_markets",
       environment: "production",
+      reviewed_by: @reviewer,
       observed_scope: "trading",
       checks: checks,
       evidence: evidence,
