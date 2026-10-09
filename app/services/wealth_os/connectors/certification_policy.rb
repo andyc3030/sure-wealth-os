@@ -55,16 +55,19 @@ module WealthOs
           end
         end
 
-        def evaluate(provider_key:, observed_scope:, checks:)
+        def evaluate(provider_key:, observed_scope:, checks:, evidence:)
           profile = profile!(provider_key)
-          normalized = checks.to_h.stringify_keys
-          missing = profile.required_checks.reject { |key| normalized[key] == true }
+          normalized_checks = checks.to_h.stringify_keys
+          normalized_evidence = evidence.to_h.stringify_keys
+          missing_checks = profile.required_checks.reject { |key| normalized_checks[key] == true }
+          missing_evidence = profile.required_checks.reject { |key| normalized_evidence[key].present? }
           scope_ok = observed_scope.to_s == profile.expected_scope
 
           {
-            passed: scope_ok && missing.empty?,
+            passed: scope_ok && missing_checks.empty? && missing_evidence.empty?,
             expected_scope: profile.expected_scope,
-            missing_checks: missing,
+            missing_checks: missing_checks,
+            missing_evidence: missing_evidence,
             scope_matches: scope_ok
           }.freeze
         end
