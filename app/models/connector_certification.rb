@@ -3,11 +3,21 @@
 class ConnectorCertification < ApplicationRecord
   ENVIRONMENTS = %w[sandbox demo production].freeze
   STATUSES = %w[passed failed].freeze
-  SECRET_KEY_PATTERN =
-    /(access[_-]?token|refresh[_-]?token|bearer[_-]?token|client[_-]?secret|api[_-]?(?:key|secret)|password|authorization[_-]?header|private[_-]?key|cookie)/i
+  SECRET_KEY_PATTERN = Regexp.union(
+    /access[_-]?token/i,
+    /refresh[_-]?token/i,
+    /bearer[_-]?token/i,
+    /client[_-]?secret/i,
+    /api[_-]?(?:key|secret)/i,
+    /password/i,
+    /authorization[_-]?header/i,
+    /private[_-]?key/i,
+    /cookie/i
+  ).freeze
 
   belongs_to :family
   belongs_to :account, optional: true
+  belongs_to :reviewed_by, class_name: "User", optional: true
   belongs_to :supersedes, class_name: "ConnectorCertification", optional: true
   has_one :successor,
           class_name: "ConnectorCertification",
