@@ -584,6 +584,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_010000) do
     t.string "evidence_sha256", limit: 64, null: false
     t.datetime "checked_at", null: false
     t.datetime "review_due_at"
+    t.uuid "reviewed_by_id"
     t.uuid "supersedes_id"
     t.text "notes"
     t.datetime "created_at", null: false
