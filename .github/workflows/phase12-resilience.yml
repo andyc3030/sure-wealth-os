@@ -144,7 +144,7 @@ jobs:
           bin/rails runner '
             raise "families missing after restore" if Family.count.zero?
             raise "accounts missing after restore" if Account.count.zero?
-            raise "schema version mismatch" unless ActiveRecord::Base.connection.migration_context.current_version == 20261009010000
+            raise "schema version mismatch" unless ActiveRecord::Base.connection.select_value("SELECT MAX(version) FROM schema_migrations").to_i == 20261009010000
             puts "Restored application smoke check passed"
           '
 
@@ -202,7 +202,7 @@ jobs:
           bin/rails db:seed
 
           bin/rails runner '
-            raise "expected current Wealth OS migration is not applied" unless ActiveRecord::Base.connection.migration_context.current_version == 20261009010000
+            raise "expected current Wealth OS migration is not applied" unless ActiveRecord::Base.connection.select_value("SELECT MAX(version) FROM schema_migrations").to_i == 20261009010000
             raise "seeded accounts missing" if Account.count.zero?
           '
 
@@ -270,7 +270,7 @@ jobs:
 
           bin/rails runner '
             raise "current application cannot read accounts after recovery" if Account.count.zero?
-            raise "current Wealth OS migration was lost" unless ActiveRecord::Base.connection.migration_context.current_version == 20261009010000
+            raise "current Wealth OS migration was lost" unless ActiveRecord::Base.connection.select_value("SELECT MAX(version) FROM schema_migrations").to_i == 20261009010000
             puts "Current application recovery smoke check passed"
           '
 
