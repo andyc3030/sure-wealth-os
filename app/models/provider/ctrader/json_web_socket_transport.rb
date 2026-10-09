@@ -137,7 +137,7 @@ class Provider::Ctrader::JsonWebSocketTransport
       ssl = OpenSSL::SSL::SSLSocket.new(tcp, context)
       ssl.hostname = host if ssl.respond_to?(:hostname=)
       ssl.sync_close = true
-      ssl.connect
+      Timeout.timeout(open_timeout) { ssl.connect }
       @socket = ssl
     rescue StandardError => e
       raise Provider::Ctrader::Error, "cTrader connection failed: #{e.class}"
