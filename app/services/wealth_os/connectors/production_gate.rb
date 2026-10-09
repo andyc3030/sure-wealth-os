@@ -16,8 +16,8 @@ module WealthOs
 
         return Result.new(false, "no_production_certification", nil) unless certification
         return Result.new(false, "latest_certification_failed", certification) unless certification.passed?
-        return Result.new(false, "certification_review_overdue", certification) if
-          certification.review_due_at && certification.review_due_at < at
+        return Result.new(false, "certification_review_missing", certification) if certification.review_due_at.blank?
+        return Result.new(false, "certification_review_overdue", certification) if certification.review_due_at < at
 
         Result.new(true, "production_certified", certification)
       end
