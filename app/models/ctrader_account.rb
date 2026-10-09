@@ -46,14 +46,15 @@ class CtraderAccount < ApplicationRecord
     broker_name.to_s.parameterize(separator: "_")
   end
 
-  def production_certification
+  def production_certification(at: Time.current)
     return nil unless broker_name.present?
 
     WealthOs::Connectors::ProductionGate.call(
       family: ctrader_item.family,
       provider_key: "ctrader",
       institution_key: certification_institution_key,
-      account: linked_account
+      account: linked_account,
+      at: at
     )
   end
 end
