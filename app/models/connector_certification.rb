@@ -25,6 +25,7 @@ class ConnectorCertification < ApplicationRecord
   validate :evidence_contains_no_secret_keys
   validate :matches_deterministic_policy
   validate :review_horizon_is_bounded
+  validate :production_reviewer_is_authorized
 
   before_validation :normalize_evidence_and_digest, on: :create
   before_update :prevent_mutation
@@ -98,6 +99,20 @@ class ConnectorCertification < ApplicationRecord
       errors.add(:review_due_at, "cannot exceed policy review interval") if review_due_at > maximum
     rescue ArgumentError
       nil
+    end
+
+    def production_reviewer_is_authorized
+      return unless environment == "production"
+
+      if reviewed_by.nil?
+        errors.add(:reviewed_by, "is required for production certification")
+        return
+      end
+
+      errors.add(:reviewed_by, "must belong to the same family") unless reviewed_by.family_id == family_id
+      unless reviewed_by.admin? || reviewed_by.super_admin?
+        errors.add(:reviewed_by, "must be a family administrator")
+      end
     end
 
     def evidence_contains_no_secret_keys
