@@ -126,6 +126,44 @@ class WealthOs::Dashboard::ProvenanceBuilderTest < ActiveSupport::TestCase
     assert_includes result.fetch("calculation"), "baseline income minus"
   end
 
+  test "marks pre-Phase-8 risk provenance as unavailable" do
+    family = families(:dylan_family)
+    date = Date.new(2026, 10, 18)
+    cutoff = WealthOs::DailyClose::Configuration.cutoff_at(date)
+
+    snapshot = DailyCloseSnapshot.capture!(
+      family: family, close_date: date, cutoff_at: cutoff, closed_at: cutoff + 1.minute,
+      timezone: "Europe/London", reporting_currency: "GBP",
+      quality_status: "pass", confidence: 1,
+      gross_assets: 0, total_liabilities: 0, net_worth: 0,
+      payload: {
+        "valuation" => { "accounts" => [] },
+        "income_and_liabilities" => {
+          "income_by_state" => {
+            "forecast" => "0", "accrued" => "0", "declared" => "0", "received" => "0"
+          }
+        },
+        "forecast" => {
+          "horizons" => {
+            "7" => row(date, 7), "30" => row(date, 30),
+            "90" => row(date, 90), "365" => row(date, 365)
+          },
+          "undated_income_count" => 0
+        },
+        "quality" => { "details" => {} },
+        "provenance" => { "captured_at_cutoff" => cutoff.iso8601 }
+      }
+    )
+
+    result = WealthOs::Dashboard::ProvenanceBuilder.call(
+      snapshot: snapshot,
+      metric: "income_at_risk_365"
+    )
+
+    assert_nil result.fetch("value")
+    assert_equal "legacy_snapshot_without_phase8_income_risk", result.fetch("lineage_status")
+  end
+
   test "returns the exact requested forecast component" do
     family = families(:dylan_family)
     date = Date.new(2026, 10, 16)
