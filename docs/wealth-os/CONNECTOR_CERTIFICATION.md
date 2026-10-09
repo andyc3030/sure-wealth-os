@@ -110,3 +110,21 @@ They cannot prove:
 - that reconnect did not create a duplicate in a real provider session.
 
 Those checks require the genuine provider connection and source records.
+
+## Supersession and reviewer validity
+
+Certification chains are environment-specific. A sandbox/demo record cannot be superseded by a production record and vice versa.
+
+Production approval fails closed if the approving reviewer is no longer present or is no longer an authorized administrator in the same family.
+
+The latest production record controls approval. A later failed record revokes an earlier pass.
+
+## Live sync gate
+
+Production certification is an operational gate, not only documentation.
+
+For cTrader:
+
+- demo automated sync is allowed for development/integration testing;
+- direct live read-only snapshot import may be used deliberately to gather certification evidence;
+- normal live automated sync is rejected until every discovered live account has current production certification.
