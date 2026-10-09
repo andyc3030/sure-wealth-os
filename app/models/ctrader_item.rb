@@ -39,11 +39,19 @@ class CtraderItem < ApplicationRecord
       (oauth_token_expires_at.blank? || oauth_token_expires_at.future?)
   end
 
-  def import_read_only_snapshot!(gateway:, from_timestamp:, to_timestamp:, observed_at: Time.current)
+  def import_read_only_snapshot!(gateway: nil, from_timestamp:, to_timestamp:, observed_at: Time.current)
+    owned_transport = nil
+    if gateway.nil?
+      owned_transport = Provider::Ctrader::JsonWebSocketTransport.new(environment: environment)
+      gateway = Provider::Ctrader::ReadOnlyGateway.new(transport: owned_transport)
+    end
+
     CtraderItem::Importer.new(self, gateway: gateway).import(
       from_timestamp: from_timestamp,
       to_timestamp: to_timestamp,
       observed_at: observed_at
     )
+  ensure
+    owned_transport&.close
   end
 end
