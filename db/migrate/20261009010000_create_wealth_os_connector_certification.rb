@@ -17,6 +17,7 @@ class CreateWealthOsConnectorCertification < ActiveRecord::Migration[8.1]
       t.string :evidence_sha256, null: false, limit: 64
       t.datetime :checked_at, null: false
       t.datetime :review_due_at
+      t.uuid :reviewed_by_id
       t.references :supersedes,
                    type: :uuid,
                    null: true,
@@ -25,6 +26,7 @@ class CreateWealthOsConnectorCertification < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
+    add_index :connector_certifications, :reviewed_by_id
     add_index :connector_certifications,
               [ :family_id, :provider_key, :institution_key, :checked_at ],
               name: "idx_connector_certifications_lookup"
