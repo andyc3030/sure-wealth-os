@@ -20,9 +20,14 @@ class Provider::Ctrader::ReadOnlyGateway
   EXECUTION_PAYLOAD_TYPES = [ 2106, 2108, 2109, 2110, 2111 ].freeze
   VIEW_PERMISSION_VALUES = [ "SCOPE_VIEW", 0, "0" ].freeze
   TRADE_PERMISSION_VALUES = [ "SCOPE_TRADE", 1, "1" ].freeze
+  HISTORICAL_REQUESTS = %i[deal_list cash_flow_history order_list].freeze
+  HISTORICAL_MIN_INTERVAL = 0.2
+  STANDARD_MIN_INTERVAL = 0.02
 
   def initialize(transport:)
     @transport = transport
+    @rate_mutex = Mutex.new
+    @last_request_at = {}
   end
 
   def authenticate_application!(client_id:, client_secret:)
@@ -114,12 +119,27 @@ class Provider::Ctrader::ReadOnlyGateway
         raise UnsupportedRequest, "cTrader request #{name} is not allowlisted"
       end
 
+      throttle!(name)
+
       response = transport.call(
         payload_type: payload_type,
         payload: payload.stringify_keys,
         client_msg_id: SecureRandom.uuid
       )
       extract_payload(response)
+    end
+
+    def throttle!(name)
+      bucket = HISTORICAL_REQUESTS.include?(name) ? :historical : :standard
+      minimum = bucket == :historical ? HISTORICAL_MIN_INTERVAL : STANDARD_MIN_INTERVAL
+
+      @rate_mutex.synchronize do
+        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        previous = @last_request_at[bucket]
+        sleep_time = minimum - (now - previous) if previous
+        sleep(sleep_time) if sleep_time&.positive?
+        @last_request_at[bucket] = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      end
     end
 
     def extract_payload(response)
