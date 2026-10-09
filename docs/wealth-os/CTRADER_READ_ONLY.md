@@ -87,3 +87,25 @@ The provider facts must first pass live reconciliation and source-authority deci
 7. Repeat against the intended live account.
 8. Record a production certification with full evidence and admin reviewer.
 9. Only then enable a public/live connector workflow.
+
+## Automated live-sync boundary
+
+The provider implementation separates certification evidence collection from normal production synchronization.
+
+- Demo: normal sync is permitted.
+- Live certification evidence: an explicit direct read-only snapshot import may be invoked.
+- Live automated sync: blocked unless current production certification passes for every discovered account.
+
+This prevents code readiness or possession of a token from becoming implicit production approval.
+
+## Token invalidation
+
+cTrader `ProtoOAAccountsTokenInvalidatedEvent` (payload type 2147) is treated as an authentication failure.
+
+When received:
+
+- pending reads fail;
+- the transport remains poisoned for subsequent reads;
+- the sync/import layer can mark the item as requiring credential/authorization update.
+
+This covers server-side revocation, expiration and refresh invalidation behavior.
