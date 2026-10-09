@@ -9,11 +9,9 @@ require "websocket/driver"
 class Provider::Ctrader::JsonWebSocketTransport
   PORT = 5036
   HEARTBEAT_PAYLOAD_TYPE = 51
-  HEARTBEAT_INTERVAL = 10.seconds
-  DEFAULT_OPEN_TIMEOUT = 10.seconds
-  DEFAULT_RESPONSE_TIMEOUT = 30.seconds
-
-  MessageEvent = Data.define(:data)
+  HEARTBEAT_INTERVAL = 10
+  DEFAULT_OPEN_TIMEOUT = 10
+  DEFAULT_RESPONSE_TIMEOUT = 30
 
   attr_reader :environment
 
