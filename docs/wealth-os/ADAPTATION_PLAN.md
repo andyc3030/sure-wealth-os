@@ -214,3 +214,43 @@ Phase 8 exit criteria:
 - old snapshots remain immutable and report Phase 8 metrics as unavailable;
 - controlled AI explains stored results but cannot invent alternative haircuts;
 - unit/integration, system, lint, dependency and Pipelock security checks are green.
+
+## Phase 9 — Production connector certification and live-source readiness
+
+Turn the Phase 2 connector inventory into an auditable production-readiness framework and implement the dedicated cTrader read-only backend required for IC Markets.
+
+Implemented scope:
+
+- immutable connector-certification records with SHA-256 evidence digests;
+- deterministic provider profiles for Plaid UK, SnapTrade, cTrader and verified-manual routes;
+- every required production check must be TRUE and have recorded evidence;
+- production certification requires an authorized family-administrator reviewer;
+- certifications have bounded review horizons and supersede prior records append-only;
+- latest failed or overdue production certification fails closed;
+- certification evidence rejects credential-bearing keys;
+- cTrader OAuth authorization hard-codes `scope=accounts`;
+- token rotation clears observed permission until revalidated;
+- cTrader account-list response must report `SCOPE_VIEW`; `SCOPE_TRADE` is rejected;
+- cTrader request surface is allowlisted and all unknown/write messages fail closed;
+- known order placement/cancel/amend/close payloads are explicitly blocked;
+- live/demo cTrader environments are physically separated;
+- TLS WebSocket JSON transport uses Spotware port 5036 with request correlation, heartbeat and timeouts;
+- historical request rate is limited to Spotware's documented rate;
+- cash-flow windows are capped at seven days;
+- truncated deal/order history is split and refetched instead of silently accepted;
+- account, position, order, deal and cash-flow provider facts land in immutable `RawSourceRecord` provenance;
+- cTrader snapshots do not automatically mutate canonical Sure balances, holdings or trades;
+- cTrader public connection UI remains disabled until real production certification exists.
+
+Phase 9 exit criteria:
+
+- a caller cannot self-assert PASS by bypassing the certification evaluator;
+- a production PASS cannot exist without complete checks, complete evidence, expected permission and an authorized reviewer;
+- an expired or later failed certification removes production approval;
+- cTrader `trading` scope and execution requests are unreachable;
+- missing live/demo account identity fails loudly;
+- cTrader history requests use Unix milliseconds and do not silently truncate;
+- credential/token values never enter raw provenance or certification evidence;
+- raw cTrader provider facts retain source lineage without changing authoritative accounting state;
+- code-level CI/security checks are green;
+- real provider routes remain PENDING LIVE CERTIFICATION until genuine consent, revocation, reconnect and statement/broker reconciliation evidence is supplied.
