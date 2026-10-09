@@ -1,0 +1,279 @@
+name: Phase 12 Resilience Gates
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  backup_restore:
+    name: Backup → restore integrity drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      RAILS_ENV: test
+      DB_HOST: 127.0.0.1
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sure_test
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/sure_test # pipelock:ignore
+      PGPASSWORD: postgres
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            curl libvips postgresql-client libpq-dev rclone
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@97ecb7b512899eb71ab1bf2310a624c6f1589ac6 # v1.308.0
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Build source database
+        run: |
+          set -euo pipefail
+          bin/rails db:create
+          bin/rails db:schema:load
+          bin/rails db:seed
+
+      - name: Fingerprint source database
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fingerprint_db() {
+            local database="$1"
+            local output="$2"
+
+            : > "$output"
+            while IFS= read -r table; do
+              count="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$database" -Atc "SELECT COUNT(*) FROM \"$table\";")"
+              digest="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$database" -Atc "SELECT md5(COALESCE(string_agg(row_to_json(t)::text, '' ORDER BY row_to_json(t)::text), '')) FROM \"$table\" t;")"
+              printf '%s|%s|%s\n' "$table" "$count" "$digest" >> "$output"
+            done < <(
+              psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$database" -Atc \
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;"
+            )
+          }
+
+          fingerprint_db "$POSTGRES_DB" "$RUNNER_TEMP/source-fingerprint.txt"
+          test -s "$RUNNER_TEMP/source-fingerprint.txt"
+
+      - name: Execute production backup script
+        env:
+          BACKUP_DESTINATION: ${{ runner.temp }}/backups
+          INSTANCE_ID: phase12
+          BACKUP_OVERWRITE: "true"
+          BACKUP_KEEP_DAYS: "7"
+        run: |
+          set -euo pipefail
+          chmod +x bin/db-backup.sh
+          bin/db-backup.sh
+
+          BACKUP_FILE="$RUNNER_TEMP/backups/phase12/backup_latest.sql.gz"
+          test -s "$BACKUP_FILE"
+          gzip -t "$BACKUP_FILE"
+          echo "BACKUP_FILE=$BACKUP_FILE" >> "$GITHUB_ENV"
+
+      - name: Restore into clean database
+        run: |
+          set -euo pipefail
+          RESTORE_DB="sure_restore_test"
+
+          dropdb --if-exists -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" "$RESTORE_DB"
+          createdb -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" "$RESTORE_DB"
+          gunzip -c "$BACKUP_FILE" | psql -v ON_ERROR_STOP=1 \
+            -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$RESTORE_DB"
+
+          echo "RESTORE_DB=$RESTORE_DB" >> "$GITHUB_ENV"
+
+      - name: Verify restored data is byte-logically equivalent
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fingerprint_db() {
+            local database="$1"
+            local output="$2"
+
+            : > "$output"
+            while IFS= read -r table; do
+              count="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$database" -Atc "SELECT COUNT(*) FROM \"$table\";")"
+              digest="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$database" -Atc "SELECT md5(COALESCE(string_agg(row_to_json(t)::text, '' ORDER BY row_to_json(t)::text), '')) FROM \"$table\" t;")"
+              printf '%s|%s|%s\n' "$table" "$count" "$digest" >> "$output"
+            done < <(
+              psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$database" -Atc \
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;"
+            )
+          }
+
+          fingerprint_db "$RESTORE_DB" "$RUNNER_TEMP/restore-fingerprint.txt"
+          diff -u "$RUNNER_TEMP/source-fingerprint.txt" "$RUNNER_TEMP/restore-fingerprint.txt"
+
+      - name: Boot application against restored database
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/sure_restore_test # pipelock:ignore
+          POSTGRES_DB: sure_restore_test
+        run: |
+          set -euo pipefail
+          bin/rails runner '
+            raise "families missing after restore" if Family.count.zero?
+            raise "accounts missing after restore" if Account.count.zero?
+            raise "schema version mismatch" unless ActiveRecord::Base.connection.migration_context.current_version == 20261009010000
+            puts "Restored application smoke check passed"
+          '
+
+  deployment_rollback:
+    name: Previous-version rollback + recovery drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      RAILS_ENV: test
+      DB_HOST: 127.0.0.1
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sure_test
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/sure_test # pipelock:ignore
+      PGPASSWORD: postgres
+      ROLLBACK_REF: wealth-os/phase8-income-resilience
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout current candidate
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            curl libvips postgresql-client libpq-dev
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@97ecb7b512899eb71ab1bf2310a624c6f1589ac6 # v1.308.0
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Build current-version database
+        run: |
+          set -euo pipefail
+          bin/rails db:create
+          bin/rails db:schema:load
+          bin/rails db:seed
+
+          bin/rails runner '
+            raise "expected current Wealth OS migration is not applied" unless ActiveRecord::Base.connection.migration_context.current_version == 20261009010000
+            raise "seeded accounts missing" if Account.count.zero?
+          '
+
+      - name: Capture financial truth fingerprint
+        run: |
+          set -euo pipefail
+          CRITICAL_TABLES="families accounts entries transactions holdings balances daily_close_snapshots reconciliation_events"
+
+          : > "$RUNNER_TEMP/pre-rollback-fingerprint.txt"
+          for table in $CRITICAL_TABLES; do
+            exists="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT to_regclass('public.$table') IS NOT NULL;")"
+            if [ "$exists" != "t" ]; then
+              echo "::error::Required financial table $table is missing"
+              exit 1
+            fi
+
+            count="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COUNT(*) FROM \"$table\";")"
+            digest="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT md5(COALESCE(string_agg(row_to_json(t)::text, '' ORDER BY row_to_json(t)::text), '')) FROM \"$table\" t;")"
+            printf '%s|%s|%s\n' "$table" "$count" "$digest" >> "$RUNNER_TEMP/pre-rollback-fingerprint.txt"
+          done
+
+      - name: Boot previous deployed version against forward-compatible schema
+        run: |
+          set -euo pipefail
+
+          git fetch origin "$ROLLBACK_REF"
+          ROLLBACK_SHA="$(git rev-parse FETCH_HEAD)"
+          echo "Testing application rollback to $ROLLBACK_REF ($ROLLBACK_SHA)"
+
+          git worktree add --detach "$RUNNER_TEMP/rollback-app" "$ROLLBACK_SHA"
+
+          (
+            cd "$RUNNER_TEMP/rollback-app"
+            bundle check || bundle install --jobs 4 --retry 3
+
+            DATABASE_URL="$DATABASE_URL" \
+            POSTGRES_DB="$POSTGRES_DB" \
+            RAILS_ENV=test \
+            bin/rails runner '
+              raise "rollback app cannot read families" if Family.count.zero?
+              raise "rollback app cannot read accounts" if Account.count.zero?
+              puts "Previous application version booted successfully against current schema"
+            '
+          )
+
+      - name: Verify rollback did not mutate financial truth
+        run: |
+          set -euo pipefail
+          CRITICAL_TABLES="families accounts entries transactions holdings balances daily_close_snapshots reconciliation_events"
+
+          : > "$RUNNER_TEMP/post-rollback-fingerprint.txt"
+          for table in $CRITICAL_TABLES; do
+            count="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COUNT(*) FROM \"$table\";")"
+            digest="$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT md5(COALESCE(string_agg(row_to_json(t)::text, '' ORDER BY row_to_json(t)::text), '')) FROM \"$table\" t;")"
+            printf '%s|%s|%s\n' "$table" "$count" "$digest" >> "$RUNNER_TEMP/post-rollback-fingerprint.txt"
+          done
+
+          diff -u "$RUNNER_TEMP/pre-rollback-fingerprint.txt" "$RUNNER_TEMP/post-rollback-fingerprint.txt"
+
+      - name: Recover current application and rerun financial controls
+        run: |
+          set -euo pipefail
+
+          git worktree remove --force "$RUNNER_TEMP/rollback-app"
+
+          bin/rails runner '
+            raise "current application cannot read accounts after recovery" if Account.count.zero?
+            raise "current Wealth OS migration was lost" unless ActiveRecord::Base.connection.migration_context.current_version == 20261009010000
+            puts "Current application recovery smoke check passed"
+          '
+
+          bin/rails test \
+            test/services/wealth_os/daily_close/orchestrator_test.rb \
+            test/services/wealth_os/reconciliation/numeric_comparator_test.rb
