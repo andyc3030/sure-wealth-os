@@ -57,6 +57,7 @@ class CtraderItem::Importer
       trader_response = gateway.trader(ctid_trader_account_id: account_id)
       trader = trader_response.fetch("trader").to_h.stringify_keys
       assets = gateway.asset_list(ctid_trader_account_id: account_id)
+      symbols = gateway.symbols_list(ctid_trader_account_id: account_id)
       reconciliation = gateway.reconcile(ctid_trader_account_id: account_id)
       pnl = gateway.position_unrealized_pnl(ctid_trader_account_id: account_id)
       deals = fetch_history(
@@ -108,6 +109,7 @@ class CtraderItem::Importer
           "account" => row,
           "trader" => trader,
           "assets" => assets,
+          "symbols" => symbols,
           "unrealized_pnl" => pnl
         ),
         raw_positions_payload: sanitize(positions),
@@ -237,7 +239,10 @@ class CtraderItem::Importer
     end
 
     def environment_matches?(row)
-      is_live = ActiveModel::Type::Boolean.new.cast(row.to_h.stringify_keys["isLive"])
+      value = row.to_h.stringify_keys["isLive"]
+      raise Provider::Ctrader::Error, "cTrader account environment is missing" if value.nil?
+
+      is_live = ActiveModel::Type::Boolean.new.cast(value)
       ctrader_item.live? ? is_live : !is_live
     end
 
