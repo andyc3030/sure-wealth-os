@@ -27,6 +27,9 @@ class CreateWealthOsConnectorCertification < ActiveRecord::Migration[8.1]
     end
 
     add_index :connector_certifications, :reviewed_by_id
+    add_foreign_key :connector_certifications, :users,
+                    column: :reviewed_by_id,
+                    on_delete: :nullify
     add_index :connector_certifications,
               [ :family_id, :provider_key, :institution_key, :checked_at ],
               name: "idx_connector_certifications_lookup"
