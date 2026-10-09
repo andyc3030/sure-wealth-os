@@ -8,6 +8,11 @@ class CtraderItem::Syncer
   end
 
   def perform_sync(sync)
+    if ctrader_item.live? && !ctrader_item.production_sync_approved?
+      raise Provider::Ctrader::PermissionError,
+            "live cTrader automated sync requires current production certification"
+    end
+
     from_date = sync.window_start_date || DEFAULT_HISTORY_DAYS.days.ago.to_date
     to_date = sync.window_end_date || Date.current
 
