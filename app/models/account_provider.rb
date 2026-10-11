@@ -3,6 +3,8 @@ class AccountProvider < ApplicationRecord
   belongs_to :provider, polymorphic: true
 
   has_many :holdings, dependent: :nullify
+  has_many :raw_source_records, dependent: :nullify
+  has_many :reconciliation_events, dependent: :nullify
 
   validates :account_id, uniqueness: { scope: :provider_type }
   validates :provider_id, uniqueness: { scope: :provider_type }

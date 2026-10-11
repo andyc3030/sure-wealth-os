@@ -17,6 +17,7 @@ class ProviderConnectionStatus
     { key: "coinspot", type: "CoinspotItem", association: :coinspot_items, accounts: :coinspot_accounts },
     { key: "onchain_wallet", type: "OnchainWalletItem", association: :onchain_wallet_items, accounts: :onchain_wallet_accounts },
     { key: "coinstats", type: "CoinstatsItem", association: :coinstats_items, accounts: :coinstats_accounts },
+    { key: "ctrader", type: "CtraderItem", association: :ctrader_items, accounts: :ctrader_accounts },
     { key: "snaptrade", type: "SnaptradeItem", association: :snaptrade_items, accounts: :snaptrade_accounts, linked_accounts: :linked_accounts },
     { key: "ibkr", type: "IbkrItem", association: :ibkr_items, accounts: :ibkr_accounts },
     { key: "mercury", type: "MercuryItem", association: :mercury_items, accounts: :mercury_accounts },

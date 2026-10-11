@@ -8,15 +8,72 @@ class AssistantTest < ActiveSupport::TestCase
 
     assert_includes default_classes, Assistant::Function::GetMerchants
     assert_includes default_classes, Assistant::Function::GetRecurringTransactions
+    assert_not_includes default_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_not_includes default_classes, Assistant::Function::GetAuthoritativeMetricProvenance
+    assert_not_includes default_classes, Assistant::Function::GetResearchAssessments
+    assert_not_includes default_classes, Assistant::Function::GetInvestmentRecommendations
     assert_not_includes default_classes, Assistant::Function::GetInsights
     assert_not_includes default_classes, Assistant::Function::GetValuations
 
-    preview_user = users(:family_admin)
+    [
+      Assistant::Function::ImportBankStatement,
+      Assistant::Function::CreateGoal,
+      Assistant::Function::CreateTag,
+      Assistant::Function::UpdateTag,
+      Assistant::Function::CreateCategory,
+      Assistant::Function::UpdateCategory,
+      Assistant::Function::UpdateTransaction,
+      Assistant::Function::CreateTransaction,
+      Assistant::Function::DeleteTransaction,
+      Assistant::Function::UpdateBudget,
+      Assistant::Function::UploadAccountStatement,
+      Assistant::Function::RecordValuation,
+      Assistant::Function::CreateBill,
+      Assistant::Function::UpdateBill,
+      Assistant::Function::RecordBillPayment
+    ].each do |write_tool|
+      assert_not_includes default_classes, write_tool
+    end
+
+    admin_user = users(:family_admin)
+    admin_classes = Assistant.function_classes(admin_user)
+    assert_includes admin_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_includes admin_classes, Assistant::Function::GetAuthoritativeMetricProvenance
+    assert_includes admin_classes, Assistant::Function::GetResearchAssessments
+    assert_includes admin_classes, Assistant::Function::GetInvestmentRecommendations
+
+    member_classes = Assistant.function_classes(users(:family_member))
+    assert_not_includes member_classes, Assistant::Function::GetAuthoritativeDailyClose
+    assert_not_includes member_classes, Assistant::Function::GetAuthoritativeMetricProvenance
+    assert_not_includes member_classes, Assistant::Function::GetResearchAssessments
+    assert_not_includes member_classes, Assistant::Function::GetInvestmentRecommendations
+
+    preview_user = admin_user
     preview_user.update!(preferences: (preview_user.preferences || {}).merge("preview_features_enabled" => true))
     preview_classes = Assistant.function_classes(preview_user)
 
     assert_includes preview_classes, Assistant::Function::GetInsights
     assert_includes preview_classes, Assistant::Function::GetValuations
+
+    [
+      Assistant::Function::ImportBankStatement,
+      Assistant::Function::CreateGoal,
+      Assistant::Function::CreateTag,
+      Assistant::Function::UpdateTag,
+      Assistant::Function::CreateCategory,
+      Assistant::Function::UpdateCategory,
+      Assistant::Function::UpdateTransaction,
+      Assistant::Function::CreateTransaction,
+      Assistant::Function::DeleteTransaction,
+      Assistant::Function::UpdateBudget,
+      Assistant::Function::UploadAccountStatement,
+      Assistant::Function::RecordValuation,
+      Assistant::Function::CreateBill,
+      Assistant::Function::UpdateBill,
+      Assistant::Function::RecordBillPayment
+    ].each do |write_tool|
+      assert_not_includes preview_classes, write_tool
+    end
   end
 
   setup do

@@ -335,6 +335,9 @@ Rails.application.routes.draw do
   patch "release_highlight/dismiss", to: "release_highlights#dismiss"
   get "feedback", to: "pages#feedback"
   get "dashboard/cash_flow", to: "cash_flows#show", as: :dashboard_cash_flow
+  get "wealth_os/snapshots/:snapshot_id/provenance/:metric",
+      to: "wealth_os/provenance#show",
+      as: :wealth_os_snapshot_provenance
   patch "dashboard/preferences", to: "pages#update_preferences"
   patch "dashboard/sections/:section_key/hidden", to: "pages#update_section_hidden", as: :dashboard_section_hidden
 

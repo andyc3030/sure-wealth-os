@@ -1,6 +1,15 @@
 class PlaidItemsController < ApplicationController
   include StreamExtensions, ConnectorAuthorizable
 
+  READ_ONLY_SOURCES = {
+    "revolut_uk" => {
+      region: "eu",
+      accountable_type: "Depository",
+      institution_id: Family::PlaidConnectable::REVOLUT_UK_INSTITUTION_ID,
+      item_name: "Revolut (UK)"
+    }.freeze
+  }.freeze
+
   connects_provider PlaidItem
 
   before_action :set_plaid_item, only: %i[edit destroy sync]
@@ -8,13 +17,16 @@ class PlaidItemsController < ApplicationController
   before_action :require_connector_manage!, only: %i[edit destroy sync]
 
   def new
-    region = params[:region] == "eu" ? :eu : :us
+    source = read_only_source_profile
+    region = (source&.fetch(:region, nil) || (params[:region] == "eu" ? "eu" : "us")).to_sym
+    accountable_type = source&.fetch(:accountable_type, nil) || params[:accountable_type] || "Depository"
     webhooks_url = region == :eu ? plaid_eu_webhooks_url : plaid_us_webhooks_url
+    @source = params[:source].presence if source
 
     @link_token = Current.family.get_link_token(
       webhooks_url: webhooks_url,
       redirect_url: accounts_url,
-      accountable_type: params[:accountable_type] || "Depository",
+      accountable_type: accountable_type,
       region: region
     )
   rescue Plaid::ApiError => e
@@ -34,13 +46,21 @@ class PlaidItemsController < ApplicationController
   end
 
   def create
+    source = read_only_source_profile(plaid_item_params[:source])
+    region = source&.fetch(:region, nil) || plaid_item_params[:region]
+    expected_institution_id = source&.fetch(:institution_id, nil)
+
     Current.family.create_plaid_item!(
       public_token: plaid_item_params[:public_token],
-      item_name: item_name,
-      region: plaid_item_params[:region]
+      item_name: source&.fetch(:item_name, nil) || item_name,
+      region: region,
+      expected_institution_id: expected_institution_id
     )
 
     redirect_to accounts_path, notice: t(".success")
+  rescue Family::PlaidConnectable::InstitutionMismatch => e
+    Rails.logger.warn("Rejected dedicated Plaid source: #{e.message}")
+    redirect_to accounts_path, alert: "Connection rejected: the selected institution was not Revolut (UK)."
   end
 
   def destroy
@@ -118,7 +138,15 @@ class PlaidItemsController < ApplicationController
     end
 
     def plaid_item_params
-      params.require(:plaid_item).permit(:public_token, :region, metadata: {})
+      params.require(:plaid_item).permit(:public_token, :region, :source, metadata: {})
+    end
+
+    def read_only_source_profile(source_key = params[:source])
+      return nil if source_key.blank?
+
+      READ_ONLY_SOURCES.fetch(source_key.to_s) do
+        raise ActionController::BadRequest, "Unsupported dedicated Plaid source"
+      end
     end
 
     def item_name

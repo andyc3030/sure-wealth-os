@@ -733,8 +733,10 @@ Assistant.for_chat(chat) # => Assistant::Builtin instance
 
 ### Function Registry
 
-`Assistant.function_classes(user = nil)` centralizes all available financial
-tools. The full list lives in `app/models/assistant.rb` (not repeated here;
+`Assistant.function_classes(user = nil)` centralizes the AI-facing financial
+tools. In this Wealth OS fork the registry is read-only by design; write-capable
+function classes may exist for normal application workflows but are not exposed
+to the LLM or MCP. The full list lives in `app/models/assistant.rb` (not repeated here;
 it drifts). Passing a user matters: preview tools
 (`PREVIEW_FUNCTION_CLASSES`) are appended only when that user has preview
 features enabled.
@@ -1435,12 +1437,12 @@ Read and analysis:
 - `get_merchants` - Merchants with the ids update_transaction accepts and the exact names get_transactions filters on
 - `get_tags` / `get_categories` - Tag and category listings with pagination
 
-Write:
-- `update_transaction`, `update_budget`, `create_goal`
-- `create_tag` / `update_tag`, `create_category` / `update_category`
+Read-only policy:
+- Mutating tools are deliberately excluded from the AI registry in this Wealth OS fork.
+- The assistant cannot create/update/delete transactions, change budgets/categories/tags,
+  import statements, record valuations, mutate bills, trade, transfer, withdraw or borrow.
 
 Documents:
-- `import_bank_statement` - Import bank statement data
 - `search_family_files` - Search uploaded documents (vector store)
 
 These are defined in `app/models/assistant/function/`. Preview tools

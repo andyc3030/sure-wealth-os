@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -569,6 +569,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["status"], name: "index_coinstats_items_on_status"
   end
 
+  create_table "connector_certifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "account_id"
+    t.string "provider_key", null: false
+    t.string "institution_key", null: false
+    t.string "route_type", null: false
+    t.string "environment", null: false
+    t.string "status", null: false
+    t.string "expected_scope", null: false
+    t.string "observed_scope", null: false
+    t.jsonb "checks", default: {}, null: false
+    t.jsonb "evidence", default: {}, null: false
+    t.string "evidence_sha256", limit: 64, null: false
+    t.datetime "checked_at", null: false
+    t.datetime "review_due_at"
+    t.uuid "reviewed_by_id"
+    t.uuid "supersedes_id"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_connector_certifications_on_account_id"
+    t.index ["family_id", "provider_key", "institution_key", "checked_at"], name: "idx_connector_certifications_lookup"
+    t.index ["family_id"], name: "index_connector_certifications_on_family_id"
+    t.index ["reviewed_by_id"], name: "index_connector_certifications_on_reviewed_by_id"
+    t.index ["supersedes_id"], name: "idx_connector_certifications_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
+    t.index ["supersedes_id"], name: "index_connector_certifications_on_supersedes_id"
+    t.check_constraint "environment::text = ANY (ARRAY['sandbox'::character varying::text, 'demo'::character varying::text, 'production'::character varying::text])", name: "chk_connector_certifications_environment"
+    t.check_constraint "evidence_sha256::text ~ '^[0-9a-f]{64}$'::text", name: "chk_connector_certifications_sha"
+    t.check_constraint "status::text = ANY (ARRAY['passed'::character varying::text, 'failed'::character varying::text])", name: "chk_connector_certifications_status"
+  end
+
   create_table "credit_cards", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.decimal "annual_fee", precision: 10, scale: 2
     t.decimal "apr", precision: 10, scale: 2
@@ -589,6 +620,50 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "ctrader_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "ctrader_item_id", null: false
+    t.bigint "ctid_trader_account_id", null: false
+    t.bigint "trader_login"
+    t.boolean "is_live", default: false, null: false
+    t.string "broker_name"
+    t.string "currency", limit: 3
+    t.integer "money_digits"
+    t.decimal "balance", precision: 19, scale: 4
+    t.decimal "equity", precision: 19, scale: 4
+    t.decimal "used_margin", precision: 19, scale: 4
+    t.decimal "free_margin", precision: 19, scale: 4
+    t.jsonb "raw_payload", default: {}, null: false
+    t.jsonb "raw_positions_payload", default: [], null: false
+    t.jsonb "raw_orders_payload", default: [], null: false
+    t.jsonb "raw_deals_payload", default: [], null: false
+    t.jsonb "raw_cash_flows_payload", default: [], null: false
+    t.datetime "last_synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ctrader_item_id", "ctid_trader_account_id"], name: "idx_ctrader_accounts_item_account", unique: true
+    t.index ["ctrader_item_id"], name: "index_ctrader_accounts_on_ctrader_item_id"
+  end
+
+  create_table "ctrader_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "name", default: "cTrader", null: false
+    t.string "environment", default: "demo", null: false
+    t.string "status", default: "good", null: false
+    t.text "oauth_access_token"
+    t.text "oauth_refresh_token"
+    t.datetime "oauth_token_expires_at"
+    t.string "permission_scope"
+    t.jsonb "raw_accounts_payload", default: [], null: false
+    t.datetime "last_synced_at"
+    t.boolean "scheduled_for_deletion", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "environment"], name: "idx_ctrader_items_family_environment"
+    t.index ["family_id"], name: "index_ctrader_items_on_family_id"
+    t.check_constraint "environment::text = ANY (ARRAY['demo'::character varying::text, 'live'::character varying::text])", name: "chk_ctrader_items_environment"
+    t.check_constraint "status::text = ANY (ARRAY['good'::character varying::text, 'requires_update'::character varying::text])", name: "chk_ctrader_items_status"
+  end
+
   create_table "data_enrichments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "attribute_name"
     t.datetime "created_at", null: false
@@ -600,6 +675,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.jsonb "value"
     t.index ["enrichable_id", "enrichable_type", "source", "attribute_name"], name: "idx_on_enrichable_id_enrichable_type_source_attribu_5be5f63e08", unique: true
     t.index ["enrichable_type", "enrichable_id"], name: "index_data_enrichments_on_enrichable"
+  end
+
+  create_table "daily_close_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "closed_at", null: false
+    t.date "close_date", null: false
+    t.decimal "confidence", precision: 5, scale: 4, null: false
+    t.datetime "created_at", null: false
+    t.datetime "cutoff_at", null: false
+    t.uuid "family_id", null: false
+    t.decimal "gross_assets", precision: 19, scale: 4, null: false
+    t.decimal "net_worth", precision: 19, scale: 4, null: false
+    t.jsonb "payload", default: {}, null: false
+    t.string "payload_sha256", limit: 64, null: false
+    t.string "quality_status", null: false
+    t.string "reporting_currency", limit: 3, null: false
+    t.integer "schema_version", default: 1, null: false
+    t.string "timezone", null: false
+    t.decimal "total_liabilities", precision: 19, scale: 4, null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "close_date"], name: "idx_daily_close_family_date", unique: true
+    t.index ["family_id", "closed_at"], name: "idx_daily_close_family_closed_at"
+    t.check_constraint "confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_daily_close_confidence"
+    t.check_constraint "payload_sha256::text ~ '^[0-9a-f]{64}$'::text", name: "chk_daily_close_payload_sha256"
+    t.check_constraint "quality_status::text = ANY (ARRAY['pass'::character varying::text, 'warning'::character varying::text])", name: "chk_daily_close_quality_status"
+    t.check_constraint "schema_version > 0", name: "chk_daily_close_schema_version"
   end
 
   create_table "debug_log_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -719,6 +819,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "plaid_id"
     t.datetime "reconciled_at"
     t.uuid "reconciled_by_statement_id"
+    t.uuid "raw_source_record_id"
     t.string "source"
     t.datetime "updated_at", null: false
     t.boolean "user_modified", default: false, null: false
@@ -735,6 +836,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["import_id"], name: "index_entries_on_import_id"
     t.index ["import_locked"], name: "index_entries_on_import_locked_true", where: "(import_locked = true)"
     t.index ["parent_entry_id"], name: "index_entries_on_parent_entry_id"
+    t.index ["raw_source_record_id"], name: "index_entries_on_raw_source_record_id"
     t.index ["reconciled_by_statement_id"], name: "index_entries_on_reconciled_by_statement", where: "(reconciled_by_statement_id IS NOT NULL)"
     t.index ["user_modified"], name: "index_entries_on_user_modified_true", where: "(user_modified = true)"
     t.check_constraint "reconciled_by_statement_id IS NULL OR reconciled_at IS NOT NULL", name: "chk_entries_reconciled_at_present_when_statement_set"
@@ -1185,6 +1287,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.string "external_id"
     t.decimal "price", precision: 19, scale: 4, null: false
     t.uuid "provider_security_id"
+    t.uuid "raw_source_record_id"
     t.decimal "qty", precision: 34, scale: 18, null: false
     t.uuid "security_id", null: false
     t.boolean "security_locked", default: false, null: false
@@ -1194,6 +1297,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["account_id"], name: "index_holdings_on_account_id"
     t.index ["account_provider_id"], name: "index_holdings_on_account_provider_id"
     t.index ["provider_security_id"], name: "index_holdings_on_provider_security_id"
+    t.index ["raw_source_record_id"], name: "index_holdings_on_raw_source_record_id"
     t.index ["security_id"], name: "index_holdings_on_security_id"
   end
 
@@ -2921,6 +3025,392 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["status"], name: "index_wise_items_on_status"
   end
 
+  create_table "income_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.date "accrual_end_date"
+    t.date "accrual_start_date"
+    t.uuid "account_id"
+    t.string "canonical_key", limit: 255, null: false
+    t.decimal "cash_received_amount", precision: 19, scale: 4
+    t.string "confidence", default: "unknown", null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.date "declared_on"
+    t.date "expected_on"
+    t.decimal "fee_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "family_id", null: false
+    t.decimal "gross_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "income_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.date "payable_on"
+    t.uuid "raw_source_record_id"
+    t.date "received_on"
+    t.uuid "security_id"
+    t.string "source_key", limit: 255
+    t.string "source_system"
+    t.string "state", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "withholding_tax_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.index ["account_id"], name: "index_income_events_on_account_id"
+    t.index ["family_id", "canonical_key"], name: "idx_income_events_family_canonical", unique: true
+    t.index ["family_id", "income_type", "state"], name: "idx_income_events_type_state"
+    t.index ["family_id", "state", "expected_on"], name: "idx_income_events_state_calendar"
+    t.index ["family_id"], name: "index_income_events_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_income_events_on_raw_source_record_id"
+    t.index ["security_id"], name: "index_income_events_on_security_id"
+    t.check_constraint "confidence::text = ANY (ARRAY['confirmed'::character varying, 'high'::character varying, 'estimated'::character varying, 'low'::character varying, 'unknown'::character varying]::text[])", name: "chk_income_events_confidence"
+    t.check_constraint "gross_amount >= 0::numeric AND withholding_tax_amount >= 0::numeric AND fee_amount >= 0::numeric AND (cash_received_amount IS NULL OR cash_received_amount >= 0::numeric)", name: "chk_income_events_nonnegative_amounts"
+    t.check_constraint "income_type::text = ANY (ARRAY['dividend'::character varying, 'interest'::character varying, 'coupon'::character varying, 'distribution'::character varying, 'rent'::character varying, 'salary'::character varying, 'pension'::character varying, 'annuity'::character varying, 'business_income'::character varying, 'other'::character varying]::text[])", name: "chk_income_events_type"
+    t.check_constraint "state::text = ANY (ARRAY['forecast'::character varying, 'accrued'::character varying, 'declared'::character varying, 'received'::character varying]::text[])", name: "chk_income_events_state"
+  end
+
+  create_table "income_event_transitions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "from_state"
+    t.uuid "income_event_id", null: false
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "reason"
+    t.jsonb "snapshot", default: {}, null: false
+    t.string "to_state", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_income_event_transitions_on_family_id"
+    t.index ["income_event_id", "occurred_at"], name: "idx_income_event_transitions_timeline"
+    t.index ["income_event_id"], name: "index_income_event_transitions_on_income_event_id"
+    t.index ["raw_source_record_id"], name: "index_income_event_transitions_on_raw_source_record_id"
+  end
+
+  create_table "liability_payments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id", null: false
+    t.string "canonical_key", limit: 255, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3, null: false
+    t.uuid "entry_id"
+    t.uuid "family_id", null: false
+    t.decimal "fee_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "insurance_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "interest_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.date "payment_date", null: false
+    t.string "payment_type", null: false
+    t.decimal "principal_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "raw_source_record_id"
+    t.string "source_key", limit: 255
+    t.string "source_system"
+    t.decimal "total_amount", precision: 19, scale: 4, null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.index ["account_id", "payment_date"], name: "idx_liability_payments_account_date"
+    t.index ["account_id"], name: "index_liability_payments_on_account_id"
+    t.index ["entry_id"], name: "index_liability_payments_on_entry_id"
+    t.index ["family_id", "canonical_key"], name: "idx_liability_payments_family_canonical", unique: true
+    t.index ["family_id"], name: "index_liability_payments_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_liability_payments_on_raw_source_record_id"
+    t.check_constraint "payment_type::text = ANY (ARRAY['actual'::character varying, 'scheduled'::character varying]::text[])", name: "chk_liability_payments_type"
+    t.check_constraint "total_amount = principal_amount + interest_amount + fee_amount + insurance_amount", name: "chk_liability_payments_component_sum"
+    t.check_constraint "total_amount >= 0::numeric AND principal_amount >= 0::numeric AND interest_amount >= 0::numeric AND fee_amount >= 0::numeric AND insurance_amount >= 0::numeric", name: "chk_liability_payments_nonnegative_amounts"
+  end
+
+  create_table "corporate_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.string "action_type", null: false
+    t.decimal "cash_amount", precision: 19, scale: 4
+    t.string "canonical_key", limit: 255, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3
+    t.date "effective_date", null: false
+    t.uuid "family_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.uuid "raw_source_record_id"
+    t.decimal "ratio_denominator", precision: 30, scale: 12
+    t.decimal "ratio_numerator", precision: 30, scale: 12
+    t.uuid "security_id", null: false
+    t.string "source_key", limit: 255
+    t.string "source_system"
+    t.string "status", default: "observed", null: false
+    t.uuid "successor_security_id"
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_corporate_actions_on_account_id"
+    t.index ["family_id", "canonical_key"], name: "idx_corporate_actions_family_canonical", unique: true
+    t.index ["family_id"], name: "index_corporate_actions_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_corporate_actions_on_raw_source_record_id"
+    t.index ["security_id", "effective_date", "action_type"], name: "idx_corporate_actions_security_date"
+    t.index ["security_id"], name: "index_corporate_actions_on_security_id"
+    t.index ["successor_security_id"], name: "index_corporate_actions_on_successor_security_id"
+    t.check_constraint "action_type::text = ANY (ARRAY['split'::character varying, 'reverse_split'::character varying, 'merger'::character varying, 'spinoff'::character varying, 'rights'::character varying, 'ticker_change'::character varying, 'cash_dividend'::character varying, 'special_dividend'::character varying, 'return_of_capital'::character varying, 'fund_reorganization'::character varying]::text[])", name: "chk_corporate_actions_type"
+    t.check_constraint "(ratio_numerator IS NULL OR ratio_numerator > 0::numeric) AND (ratio_denominator IS NULL OR ratio_denominator > 0::numeric)", name: "chk_corporate_actions_positive_ratio"
+    t.check_constraint "status::text = ANY (ARRAY['observed'::character varying, 'validated'::character varying, 'applied'::character varying, 'reconciled'::character varying, 'ignored'::character varying]::text[])", name: "chk_corporate_actions_status"
+  end
+
+  create_table "corporate_action_transitions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "corporate_action_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "from_status"
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "reason"
+    t.jsonb "snapshot", default: {}, null: false
+    t.string "to_status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["corporate_action_id", "occurred_at"], name: "idx_corporate_action_transitions_timeline"
+    t.index ["corporate_action_id"], name: "index_corporate_action_transitions_on_corporate_action_id"
+    t.index ["family_id"], name: "index_corporate_action_transitions_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_corporate_action_transitions_on_raw_source_record_id"
+  end
+
+  create_table "raw_source_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.uuid "account_provider_id"
+    t.datetime "created_at", null: false
+    t.datetime "effective_at"
+    t.uuid "family_id", null: false
+    t.string "idempotency_key", limit: 255
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "observed_at", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.string "payload_sha256", limit: 64, null: false
+    t.string "record_type", null: false
+    t.integer "schema_version", default: 1, null: false
+    t.string "source_key", limit: 255, null: false
+    t.string "source_system", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_raw_source_records_on_account_id"
+    t.index ["account_provider_id"], name: "index_raw_source_records_on_account_provider_id"
+    t.index ["family_id", "source_system", "idempotency_key"], name: "idx_raw_source_records_idempotency", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index ["family_id"], name: "index_raw_source_records_on_family_id"
+  end
+
+  create_table "reconciliation_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.uuid "account_provider_id"
+    t.jsonb "actual", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", limit: 3
+    t.string "dedupe_key", limit: 255
+    t.jsonb "details", default: {}, null: false
+    t.jsonb "difference", default: {}, null: false
+    t.jsonb "expected", default: {}, null: false
+    t.uuid "family_id", null: false
+    t.string "kind", null: false
+    t.boolean "material", default: false, null: false
+    t.datetime "occurred_at", null: false
+    t.uuid "raw_source_record_id"
+    t.string "status", null: false
+    t.uuid "subject_id"
+    t.string "subject_type"
+    t.decimal "tolerance", precision: 19, scale: 8
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_reconciliation_events_on_account_id"
+    t.index ["account_provider_id"], name: "index_reconciliation_events_on_account_provider_id"
+    t.index ["family_id", "dedupe_key"], name: "idx_reconciliation_events_dedupe", unique: true, where: "(dedupe_key IS NOT NULL)"
+    t.index ["family_id", "status", "occurred_at"], name: "idx_reconciliation_events_status"
+    t.index ["family_id"], name: "index_reconciliation_events_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_reconciliation_events_on_raw_source_record_id"
+    t.index ["subject_type", "subject_id"], name: "index_reconciliation_events_on_subject"
+  end
+
+  create_table "source_authority_rules", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.uuid "family_id", null: false
+    t.string "field_name", null: false
+    t.text "notes"
+    t.integer "priority", null: false
+    t.string "record_type", null: false
+    t.string "source_system", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "record_type", "field_name", "source_system"], name: "idx_source_authority_rules_unique", unique: true
+    t.index ["family_id"], name: "index_source_authority_rules_on_family_id"
+    t.check_constraint "priority >= 0", name: "chk_source_authority_rules_priority"
+  end
+
+  create_table "source_conflicts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "account_id"
+    t.string "currency", limit: 3
+    t.datetime "created_at", null: false
+    t.datetime "detected_at", null: false
+    t.uuid "family_id", null: false
+    t.string "field_name", null: false
+    t.decimal "impact_amount", precision: 19, scale: 4
+    t.datetime "resolved_at"
+    t.string "resolution_rule"
+    t.uuid "selected_source_record_id"
+    t.uuid "source_record_a_id", null: false
+    t.uuid "source_record_b_id", null: false
+    t.string "status", default: "open", null: false
+    t.uuid "subject_id"
+    t.string "subject_type"
+    t.datetime "updated_at", null: false
+    t.jsonb "value_a"
+    t.jsonb "value_b"
+    t.index ["account_id"], name: "index_source_conflicts_on_account_id"
+    t.index ["family_id", "status", "field_name"], name: "idx_source_conflicts_open_work"
+    t.index ["family_id"], name: "index_source_conflicts_on_family_id"
+    t.index ["selected_source_record_id"], name: "index_source_conflicts_on_selected_source_record_id"
+    t.index ["source_record_a_id", "source_record_b_id", "field_name", "status"], name: "idx_source_conflicts_pair"
+    t.index ["source_record_a_id", "source_record_b_id", "field_name"], name: "idx_source_conflicts_unique_pair", unique: true
+    t.index ["source_record_a_id"], name: "index_source_conflicts_on_source_record_a_id"
+    t.index ["source_record_b_id"], name: "index_source_conflicts_on_source_record_b_id"
+    t.index ["subject_type", "subject_id"], name: "index_source_conflicts_on_subject"
+    t.check_constraint "source_record_a_id <> source_record_b_id", name: "chk_source_conflicts_distinct_records"
+  end
+
+  create_table "source_identities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "canonical_id", null: false
+    t.string "canonical_type", null: false
+    t.decimal "confidence", precision: 5, scale: 4, default: "1.0", null: false
+    t.datetime "created_at", null: false
+    t.string "entity_type", null: false
+    t.string "external_id", null: false
+    t.uuid "family_id", null: false
+    t.uuid "raw_source_record_id"
+    t.string "source_system", null: false
+    t.uuid "supersedes_id"
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.index ["canonical_type", "canonical_id"], name: "idx_source_identities_canonical"
+    t.index ["family_id", "source_system", "entity_type", "external_id"], name: "idx_source_identities_unique_root", unique: true, where: "(supersedes_id IS NULL)"
+    t.index ["supersedes_id"], name: "idx_source_identities_one_successor", unique: true, where: "(supersedes_id IS NOT NULL)"
+    t.index ["family_id", "source_system", "entity_type", "external_id", "created_at"], name: "idx_source_identities_lookup"
+    t.index ["family_id"], name: "index_source_identities_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_source_identities_on_raw_source_record_id"
+    t.index ["supersedes_id"], name: "index_source_identities_on_supersedes_id"
+    t.check_constraint "confidence >= 0::numeric AND confidence <= 1::numeric", name: "chk_source_identities_confidence"
+  end
+
+  create_table "investment_recommendations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "action", null: false
+    t.string "allocation_sleeve", default: "none", null: false
+    t.text "balance_sheet_analysis"
+    t.text "capital_intensity_analysis"
+    t.text "cash_generation_analysis"
+    t.string "company", null: false
+    t.text "competitive_position_analysis"
+    t.text "correlation_context"
+    t.datetime "created_at", null: false
+    t.text "downside_analysis"
+    t.decimal "entry_zone_high", precision: 19, scale: 6
+    t.decimal "entry_zone_low", precision: 19, scale: 6
+    t.decimal "evidence_quality_score", precision: 3, scale: 2
+    t.uuid "family_id", null: false
+    t.decimal "invalidation_level", precision: 19, scale: 6
+    t.text "near_term_catalyst"
+    t.string "price_currency", limit: 3
+    t.datetime "price_as_of"
+    t.string "price_source"
+    t.jsonb "principal_risks", default: [], null: false
+    t.decimal "reference_price", precision: 19, scale: 6
+    t.uuid "research_assessment_id", null: false
+    t.text "role_in_thesis"
+    t.text "structural_thesis"
+    t.jsonb "technical_gate_details", default: {}, null: false
+    t.string "technical_gate_status", default: "not_evaluated", null: false
+    t.string "ticker"
+    t.datetime "updated_at", null: false
+    t.text "valuation_analysis"
+    t.index ["family_id", "action", "created_at"], name: "idx_investment_recommendations_action"
+    t.index ["family_id"], name: "index_investment_recommendations_on_family_id"
+    t.index ["research_assessment_id"], name: "index_investment_recommendations_on_research_assessment_id"
+    t.check_constraint "evidence_quality_score IS NULL OR (evidence_quality_score >= 0::numeric AND evidence_quality_score <= 5::numeric)", name: "chk_investment_recommendations_evidence_quality"
+  end
+
+  create_table "research_assessments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.date "as_of_date", null: false
+    t.integer "challenging_source_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.text "evidence_summary", null: false
+    t.uuid "family_id", null: false
+    t.text "falsification_conditions", null: false
+    t.boolean "insufficient_evidence", default: false, null: false
+    t.string "methodology_version", null: false
+    t.jsonb "narrative_beneficiaries", default: [], null: false
+    t.jsonb "new_positions", default: [], null: false
+    t.jsonb "portfolio_coverage", default: [], null: false
+    t.jsonb "quality_exposures", default: [], null: false
+    t.integer "source_count", default: 0, null: false
+    t.jsonb "structural_bottlenecks", default: [], null: false
+    t.string "theme", null: false
+    t.jsonb "top_source_ids", default: [], null: false
+    t.text "uncertainty", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "theme", "as_of_date", "methodology_version"], name: "idx_research_assessments_version", unique: true
+    t.index ["family_id"], name: "index_research_assessments_on_family_id"
+  end
+
+  create_table "research_claims", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "claim_type", null: false
+    t.text "claim_summary", null: false
+    t.decimal "confidence", precision: 5, scale: 4
+    t.datetime "created_at", null: false
+    t.string "cross_check_key"
+    t.uuid "family_id", null: false
+    t.string "locator"
+    t.boolean "material", default: false, null: false
+    t.uuid "raw_source_record_id"
+    t.uuid "research_source_id", null: false
+    t.string "status", default: "accepted", null: false
+    t.string "theme", null: false
+    t.string "thesis_effect", default: "neutral", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.index ["family_id", "cross_check_key"], name: "idx_research_claims_cross_check", where: "(cross_check_key IS NOT NULL)"
+    t.index ["family_id", "theme", "claim_type"], name: "idx_research_claims_theme_type"
+    t.index ["family_id"], name: "index_research_claims_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_research_claims_on_raw_source_record_id"
+    t.index ["research_source_id"], name: "index_research_claims_on_research_source_id"
+    t.check_constraint "confidence IS NULL OR (confidence >= 0::numeric AND confidence <= 1::numeric)", name: "chk_research_claims_confidence"
+  end
+
+  create_table "research_source_scores", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.date "as_of_date", null: false
+    t.decimal "authority_score", precision: 3, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.decimal "evidence_quality_score", precision: 3, scale: 2, null: false
+    t.uuid "family_id", null: false
+    t.decimal "independence_score", precision: 3, scale: 2, null: false
+    t.decimal "methodology_transparency_score", precision: 3, scale: 2, null: false
+    t.decimal "overall_score", precision: 3, scale: 2, null: false
+    t.jsonb "rationale", default: {}, null: false
+    t.decimal "recency_score", precision: 3, scale: 2, null: false
+    t.decimal "relevance_score", precision: 3, scale: 2, null: false
+    t.uuid "research_source_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_research_source_scores_on_family_id"
+    t.index ["research_source_id", "as_of_date"], name: "idx_research_source_scores_source_date", unique: true
+    t.index ["research_source_id"], name: "index_research_source_scores_on_research_source_id"
+    t.check_constraint "authority_score >= 0::numeric AND authority_score <= 5::numeric", name: "chk_research_source_scores_authority_score"
+    t.check_constraint "evidence_quality_score >= 0::numeric AND evidence_quality_score <= 5::numeric", name: "chk_research_source_scores_evidence_quality_score"
+    t.check_constraint "independence_score >= 0::numeric AND independence_score <= 5::numeric", name: "chk_research_source_scores_independence_score"
+    t.check_constraint "methodology_transparency_score >= 0::numeric AND methodology_transparency_score <= 5::numeric", name: "chk_research_source_scores_methodology_transparency_score"
+    t.check_constraint "overall_score >= 0::numeric AND overall_score <= 5::numeric", name: "chk_research_source_scores_overall_score"
+    t.check_constraint "recency_score >= 0::numeric AND recency_score <= 5::numeric", name: "chk_research_source_scores_recency_score"
+    t.check_constraint "relevance_score >= 0::numeric AND relevance_score <= 5::numeric", name: "chk_research_source_scores_relevance_score"
+  end
+
+  create_table "research_sources", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "accessed_at", null: false
+    t.boolean "commercial_conflict", default: false, null: false
+    t.text "conflict_notes"
+    t.datetime "created_at", null: false
+    t.boolean "dissenting", default: false, null: false
+    t.uuid "family_id", null: false
+    t.string "independence_group"
+    t.text "notes"
+    t.boolean "promotional", default: false, null: false
+    t.date "publication_date"
+    t.string "publisher", null: false
+    t.uuid "raw_source_record_id"
+    t.string "source_type", null: false
+    t.string "status", default: "accepted", null: false
+    t.string "theme", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.text "url", null: false
+    t.index ["family_id", "theme", "publisher", "publication_date"], name: "idx_research_sources_theme_publisher_date"
+    t.index ["family_id"], name: "index_research_sources_on_family_id"
+    t.index ["raw_source_record_id"], name: "index_research_sources_on_raw_source_record_id"
+  end
+
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
   add_foreign_key "account_shares", "accounts"
   add_foreign_key "account_shares", "users"
@@ -2958,6 +3448,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "coinspot_items", "families"
   add_foreign_key "coinstats_accounts", "coinstats_items"
   add_foreign_key "coinstats_items", "families"
+  add_foreign_key "connector_certifications", "accounts", on_delete: :nullify
+  add_foreign_key "connector_certifications", "connector_certifications", column: "supersedes_id", on_delete: :nullify
+  add_foreign_key "connector_certifications", "families", on_delete: :cascade
+  add_foreign_key "ctrader_accounts", "ctrader_items", on_delete: :cascade
+  add_foreign_key "ctrader_items", "families", on_delete: :cascade
   add_foreign_key "debug_log_entries", "account_providers", on_delete: :nullify
   add_foreign_key "debug_log_entries", "accounts", on_delete: :nullify
   add_foreign_key "debug_log_entries", "families", on_delete: :nullify
@@ -2968,6 +3463,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "entries", "accounts", on_delete: :cascade
   add_foreign_key "entries", "entries", column: "parent_entry_id", on_delete: :cascade
   add_foreign_key "entries", "imports"
+  add_foreign_key "entries", "raw_source_records", on_delete: :nullify
   add_foreign_key "eval_results", "eval_runs"
   add_foreign_key "eval_results", "eval_samples"
   add_foreign_key "eval_runs", "eval_datasets"
@@ -3007,6 +3503,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "holdings", "accounts", on_delete: :cascade
   add_foreign_key "holdings", "securities"
   add_foreign_key "holdings", "securities", column: "provider_security_id"
+  add_foreign_key "holdings", "raw_source_records", on_delete: :nullify
   add_foreign_key "ibkr_accounts", "ibkr_items"
   add_foreign_key "ibkr_items", "families"
   add_foreign_key "impersonation_session_logs", "impersonation_sessions"
@@ -3107,4 +3604,52 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "webauthn_credentials", "users"
   add_foreign_key "wise_accounts", "wise_items", on_delete: :cascade
   add_foreign_key "wise_items", "families"
+  add_foreign_key "income_events", "accounts", on_delete: :nullify
+  add_foreign_key "income_events", "families", on_delete: :cascade
+  add_foreign_key "income_events", "raw_source_records", on_delete: :nullify
+  add_foreign_key "income_events", "securities", on_delete: :nullify
+  add_foreign_key "income_event_transitions", "families", on_delete: :cascade
+  add_foreign_key "income_event_transitions", "income_events", on_delete: :cascade
+  add_foreign_key "income_event_transitions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "liability_payments", "accounts", on_delete: :cascade
+  add_foreign_key "liability_payments", "entries", on_delete: :nullify
+  add_foreign_key "liability_payments", "families", on_delete: :cascade
+  add_foreign_key "liability_payments", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_action_transitions", "corporate_actions", on_delete: :cascade
+  add_foreign_key "corporate_action_transitions", "families", on_delete: :cascade
+  add_foreign_key "corporate_action_transitions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_actions", "accounts", on_delete: :nullify
+  add_foreign_key "corporate_actions", "families", on_delete: :cascade
+  add_foreign_key "corporate_actions", "raw_source_records", on_delete: :nullify
+  add_foreign_key "corporate_actions", "securities", on_delete: :cascade
+  add_foreign_key "corporate_actions", "securities", column: "successor_security_id", on_delete: :nullify
+  add_foreign_key "raw_source_records", "account_providers", on_delete: :nullify
+  add_foreign_key "raw_source_records", "accounts", on_delete: :nullify
+  add_foreign_key "raw_source_records", "families", on_delete: :cascade
+  add_foreign_key "reconciliation_events", "account_providers", on_delete: :nullify
+  add_foreign_key "reconciliation_events", "accounts", on_delete: :nullify
+  add_foreign_key "reconciliation_events", "families", on_delete: :cascade
+  add_foreign_key "reconciliation_events", "raw_source_records", on_delete: :nullify
+  add_foreign_key "source_authority_rules", "families", on_delete: :cascade
+  add_foreign_key "source_conflicts", "accounts", on_delete: :nullify
+  add_foreign_key "source_conflicts", "families", on_delete: :cascade
+  add_foreign_key "source_conflicts", "raw_source_records", column: "selected_source_record_id", on_delete: :nullify
+  add_foreign_key "source_conflicts", "raw_source_records", column: "source_record_a_id"
+  add_foreign_key "source_conflicts", "raw_source_records", column: "source_record_b_id"
+  add_foreign_key "source_identities", "families", on_delete: :cascade
+  add_foreign_key "source_identities", "raw_source_records", on_delete: :nullify
+  add_foreign_key "source_identities", "source_identities", column: "supersedes_id", on_delete: :nullify
+
+  add_foreign_key "connector_certifications", "users", column: "reviewed_by_id", on_delete: :nullify
+  add_foreign_key "daily_close_snapshots", "families", on_delete: :cascade
+  add_foreign_key "investment_recommendations", "families", on_delete: :cascade
+  add_foreign_key "investment_recommendations", "research_assessments", on_delete: :cascade
+  add_foreign_key "research_assessments", "families", on_delete: :cascade
+  add_foreign_key "research_claims", "families", on_delete: :cascade
+  add_foreign_key "research_claims", "raw_source_records", on_delete: :nullify
+  add_foreign_key "research_claims", "research_sources", on_delete: :cascade
+  add_foreign_key "research_source_scores", "families", on_delete: :cascade
+  add_foreign_key "research_source_scores", "research_sources", on_delete: :cascade
+  add_foreign_key "research_sources", "families", on_delete: :cascade
+  add_foreign_key "research_sources", "raw_source_records", on_delete: :nullify
 end

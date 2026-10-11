@@ -13,6 +13,7 @@ class PagesController < ApplicationController
     # masonry can't backfill (dense placement needs a later card short enough
     # to fit beside it, and none is). Users who pair it manually can go half.
     "insights_feed"      => { col_span: "full",   grow: false, min_height: 0, width_toggle: true },
+    "wealth_os_summary"   => { col_span: "full",   grow: false, min_height: 0, width_toggle: true },
     "cashflow_sankey"    => { col_span: "full",   grow: false, min_height: 384, width_toggle: true },
     "money_flow"         => { col_span: "single", grow: false, min_height: 0,   width_toggle: true },
     "spending_trend"     => { col_span: "single", grow: true,  min_height: 208, width_toggle: true },
@@ -136,6 +137,18 @@ class PagesController < ApplicationController
     def dashboard_section_builders
       {
         "insights_feed" => -> { insights_feed_section },
+        "wealth_os_summary" => -> {
+          summary = wealth_os_dashboard_summary
+          {
+            key: "wealth_os_summary",
+            title: "pages.dashboard.wealth_os_summary.title",
+            partial: "pages/dashboard/wealth_os_summary",
+            layout: section_layout("wealth_os_summary"),
+            locals: { summary: summary },
+            visible: summary.present?,
+            collapsible: true
+          }
+        },
         "cashflow_sankey" => -> {
           {
             key: "cashflow_sankey",
@@ -237,6 +250,7 @@ class PagesController < ApplicationController
       visible = case key
       when "investment_summary" then investment_summary_available?
       when "insights_feed" then Current.family.insights.visible.exists?
+      when "wealth_os_summary" then wealth_os_dashboard_summary.present?
       else @accounts.any?
       end
 
@@ -307,7 +321,17 @@ class PagesController < ApplicationController
       keys = dashboard_section_builders.keys
       saved = Current.user.dashboard_section_order & keys
       unsaved = keys - saved
-      (unsaved & %w[insights_feed]) + saved + (unsaved - %w[insights_feed])
+      leading = unsaved & %w[insights_feed wealth_os_summary]
+      leading + saved + (unsaved - leading)
+    end
+
+    def wealth_os_dashboard_summary
+      return @wealth_os_dashboard_summary if defined?(@wealth_os_dashboard_summary)
+
+      @wealth_os_dashboard_summary =
+        if WealthOs::Dashboard::AccessPolicy.allowed?(user: Current.user, family: Current.family)
+          WealthOs::Dashboard::SummaryBuilder.latest(family: Current.family)
+        end
     end
 
     # Resolves a section's layout guardrails, applying the user's height preset

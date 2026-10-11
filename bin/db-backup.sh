@@ -68,8 +68,15 @@ export PGPASSFILE="${PGPASS_FILE}"
 (umask 077 && touch "${TEMP_FILE}")
 chmod 0600 "${TEMP_FILE}"
 
+DUMP_FILE="${TMP_DIR}/backup.sql"
+
 echo "Starting backup for ${POSTGRES_DB} to ${TEMP_FILE}..."
-pg_dump -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" | gzip > "${TEMP_FILE}"
+# Keep pg_dump and gzip as separate commands. /bin/sh does not portably support
+# pipefail, so a pg_dump failure in "pg_dump | gzip" could otherwise produce a
+# valid empty gzip file and incorrectly report a successful backup.
+pg_dump -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" > "${DUMP_FILE}"
+gzip -c "${DUMP_FILE}" > "${TEMP_FILE}"
+rm -f "${DUMP_FILE}"
 
 DEST_PATH="${BACKUP_DESTINATION%/}/${INSTANCE_ID}"
 echo "Uploading ${TEMP_FILE} to ${DEST_PATH}/${FILENAME} via rclone..."

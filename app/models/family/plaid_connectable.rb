@@ -1,6 +1,9 @@
 module Family::PlaidConnectable
   extend ActiveSupport::Concern
 
+  InstitutionMismatch = Class.new(StandardError)
+  REVOLUT_UK_INSTITUTION_ID = "ins_63"
+
   included do
     has_many :plaid_items, dependent: :destroy
   end
@@ -14,8 +17,15 @@ module Family::PlaidConnectable
     plaid(:eu).present? && self.eu?
   end
 
-  def create_plaid_item!(public_token:, item_name:, region:)
-    public_token_response = plaid(region).exchange_public_token(public_token)
+  def create_plaid_item!(public_token:, item_name:, region:, expected_institution_id: nil)
+    provider = plaid(region)
+    public_token_response = provider.exchange_public_token(public_token)
+
+    verify_expected_institution!(
+      provider: provider,
+      access_token: public_token_response.access_token,
+      expected_institution_id: expected_institution_id
+    )
 
     plaid_item = plaid_items.create!(
       name: item_name,
@@ -44,6 +54,25 @@ module Family::PlaidConnectable
   end
 
   private
+    def verify_expected_institution!(provider:, access_token:, expected_institution_id:)
+      return if expected_institution_id.blank?
+
+      actual_institution_id = provider.get_item(access_token).item.institution_id.to_s
+      return if ActiveSupport::SecurityUtils.secure_compare(
+        actual_institution_id,
+        expected_institution_id.to_s
+      )
+
+      begin
+        provider.remove_item(access_token)
+      rescue => e
+        Rails.logger.warn("Failed to revoke mismatched Plaid item: #{e.class}: #{e.message}")
+      end
+
+      raise InstitutionMismatch,
+            "Plaid institution mismatch: expected #{expected_institution_id}, got #{actual_institution_id.presence || 'blank'}"
+    end
+
     def plaid(region)
       Provider::Registry.plaid_provider_for_region(region)
     end

@@ -2,13 +2,13 @@ name: Pipelock Security Scan
 
 on:
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   security-scan:
+    name: Pipelock Security Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
