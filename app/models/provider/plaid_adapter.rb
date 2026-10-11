@@ -57,6 +57,27 @@ class Provider::PlaidAdapter < Provider::Base
     # EU configuration
     if family.can_connect_plaid_eu?
       configs << {
+        key: "revolut_uk",
+        name: "Revolut (UK) — live read only",
+        description: "Live balances and transactions via Plaid UK; no payments, transfers, or trading",
+        can_connect: true,
+        member_connectable: member_connectable?,
+        new_account_path: ->(_accountable_type, _return_to) {
+          Rails.application.routes.url_helpers.new_plaid_item_path(
+            region: "eu",
+            accountable_type: "Depository",
+            source: "revolut_uk"
+          )
+        },
+        existing_account_path: ->(account_id) {
+          Rails.application.routes.url_helpers.select_existing_account_plaid_items_path(
+            account_id: account_id,
+            region: "eu"
+          )
+        }
+      }
+
+      configs << {
         key: "plaid_eu",
         name: "Plaid (Europe / UK)",
         description: "Connect to your European or UK bank via Plaid",

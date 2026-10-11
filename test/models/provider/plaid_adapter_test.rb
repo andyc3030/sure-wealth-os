@@ -38,4 +38,21 @@ class Provider::PlaidAdapterTest < ActiveSupport::TestCase
   test "can_delete_holdings? returns false" do
     assert_equal false, @adapter.can_delete_holdings?
   end
+
+  test "exposes dedicated Revolut UK live read-only connection" do
+    family = mock
+    family.stubs(:can_connect_plaid_us?).returns(false)
+    family.stubs(:can_connect_plaid_eu?).returns(true)
+
+    config = Provider::PlaidAdapter.connection_configs(family: family).find { |entry| entry[:key] == "revolut_uk" }
+
+    assert_not_nil config
+    assert_equal "Revolut (UK) — live read only", config[:name]
+    assert_match(/no payments, transfers, or trading/, config[:description])
+
+    path = config[:new_account_path].call("Investment", nil)
+    assert_includes path, "region=eu"
+    assert_includes path, "accountable_type=Depository"
+    assert_includes path, "source=revolut_uk"
+  end
 end

@@ -85,6 +85,80 @@ class PlaidItemsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "dedicated Revolut flow forces EU depository read-only Link" do
+    plaid_provider = mock
+    Provider::Registry.stubs(:plaid_provider_for_region).with(:eu).returns(plaid_provider)
+    plaid_provider.expects(:get_link_token).with do |args|
+      args[:accountable_type] == "Depository" &&
+        args[:webhooks_url] == webhooks_plaid_eu_url
+    end.returns(OpenStruct.new(link_token: "link-revolut-read-only"))
+
+    get new_plaid_item_url(
+      source: "revolut_uk",
+      region: "us",
+      accountable_type: "Investment"
+    )
+
+    assert_response :success
+    assert_includes response.body, "revolut_uk"
+  end
+
+  test "dedicated Revolut create verifies institution and forces EU region" do
+    plaid_provider = mock
+    Provider::Registry.expects(:plaid_provider_for_region).with("eu").returns(plaid_provider)
+
+    plaid_provider.expects(:exchange_public_token).with("public-revolut").returns(
+      OpenStruct.new(access_token: "access-revolut", item_id: "item-revolut")
+    )
+    plaid_provider.expects(:get_item).with("access-revolut").returns(
+      OpenStruct.new(item: OpenStruct.new(institution_id: Family::PlaidConnectable::REVOLUT_UK_INSTITUTION_ID))
+    )
+    plaid_provider.expects(:remove_item).never
+
+    assert_difference "PlaidItem.count", 1 do
+      post plaid_items_url, params: {
+        plaid_item: {
+          public_token: "public-revolut",
+          region: "us",
+          source: "revolut_uk",
+          metadata: { institution: { name: "Untrusted client name" } }
+        }
+      }
+    end
+
+    item = PlaidItem.order(:created_at).last
+    assert_equal "eu", item.plaid_region
+    assert_equal "Revolut (UK)", item.name
+    assert_redirected_to accounts_path
+  end
+
+  test "dedicated Revolut create rejects and revokes a different institution" do
+    plaid_provider = mock
+    Provider::Registry.expects(:plaid_provider_for_region).with("eu").returns(plaid_provider)
+
+    plaid_provider.expects(:exchange_public_token).with("public-wrong-bank").returns(
+      OpenStruct.new(access_token: "access-wrong-bank", item_id: "item-wrong-bank")
+    )
+    plaid_provider.expects(:get_item).with("access-wrong-bank").returns(
+      OpenStruct.new(item: OpenStruct.new(institution_id: "ins_not_revolut"))
+    )
+    plaid_provider.expects(:remove_item).with("access-wrong-bank").once
+
+    assert_no_difference "PlaidItem.count" do
+      post plaid_items_url, params: {
+        plaid_item: {
+          public_token: "public-wrong-bank",
+          region: "eu",
+          source: "revolut_uk",
+          metadata: { institution: { name: "Wrong Bank" } }
+        }
+      }
+    end
+
+    assert_redirected_to accounts_path
+    assert_match(/not Revolut/, flash[:alert])
+  end
+
   test "create" do
     @plaid_provider = mock
     Provider::Registry.expects(:plaid_provider_for_region).with("us").returns(@plaid_provider)

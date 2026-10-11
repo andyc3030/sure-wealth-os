@@ -7,6 +7,7 @@ export default class extends Controller {
     region: { type: String, default: "us" },
     isUpdate: { type: Boolean, default: false },
     itemId: String,
+    source: String,
   };
 
   connect() {
@@ -118,6 +119,7 @@ export default class extends Controller {
           public_token: public_token,
           metadata: metadata,
           region: this.regionValue,
+          source: this.hasSourceValue ? this.sourceValue : undefined,
         },
       }),
     }).then((response) => {
