@@ -39,7 +39,7 @@ module WealthOs
           ),
           evidence: evidence,
           checked_at: checked_at,
-          review_due_at: checked_at + profile.review_interval_days.days,
+          review_due_at: checked_at.in_time_zone("UTC") + profile.review_interval_days.days,
           supersedes: previous,
           notes: notes
         )
