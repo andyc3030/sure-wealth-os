@@ -125,8 +125,9 @@ Objective: establish current evidence and prevent accidental expansion of the
 existing reviewed model-visible read-only tool set.
 
 Scope: this audit, exact membership tests across admin/member and preview states,
-an MCP tools/list contract test, and active-user enforcement in the static-token
-fallback. Non-goals: rename/add/remove tools, change OAuth or sharing, recalculate
+an MCP tools/list contract test, active-user enforcement in the static-token
+fallback, and mandatory importmap security auditing in PR CI. Non-goals:
+rename/add/remove tools, change OAuth or sharing, recalculate
 financial metrics, enable cTrader, or claim live readiness. No migration or new
 dependency is needed.
 
@@ -136,6 +137,9 @@ and off; verify external MCP publication matches the maximum approved set.
 Preserve existing unknown/mutating-tool rejection coverage and all tenant gates.
 Reject static-token requests after the configured user is deactivated, including
 after a successful initialize. OAuth already has this active-user requirement.
+The reusable CI workflow permits advisory JS auditing by default. Its PR caller
+must explicitly require the audit so an ignored scan failure cannot satisfy the
+project's security gate. Do not remove scans or suppress their findings.
 
 Security/failure behavior: an added/removed/renamed visible tool must fail the
 contract test and require deliberate review. Never derive expected values from
