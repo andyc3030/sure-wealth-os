@@ -128,3 +128,30 @@ For cTrader:
 - demo automated sync is allowed for development/integration testing;
 - direct live read-only snapshot import may be used deliberately to gather certification evidence;
 - normal live automated sync is rejected until every discovered live account has current production certification.
+
+## Phase 13 authoritative-use gate
+
+Production approval is required when a source contributes to an authoritative daily close. The gate runs after the existing financial and quality checks and before immutable snapshot capture. UI rendering, initial OAuth connection and evidence collection remain available before certification.
+
+The dedicated `WealthOs::DailyClose::CertificationGate` discovers authoritative sources through included visible accounts, their persisted provider relationships, normalized entry/holding provenance, and the income and liability contributors consumed by the ledger and forecast. Unused raw candidates do not create requirements. Derived rows reuse their account/source result; they are not independently certified.
+
+| Source | Profile | Persisted institution identity |
+| --- | --- | --- |
+| Plaid Europe/UK | `plaid_uk` | Same-family `PlaidItem.institution_id` (including Revolut's `ins_63`) |
+| SnapTrade | `snaptrade` | The unique institution key in the account's production certification records |
+| Verified manual | `verified_manual` | The unique institution key in the account's production certification records |
+| cTrader | Excluded from Phase 13 | No gate result or certification blocker |
+
+Display names and brokerage names are not converted into institution keys. Missing, conflicting, cross-family or unsupported source mappings fail closed with `certification_source_unresolved`. A family-level external/manual contributor must resolve to a canonical source account through its persisted provenance. An account-scoped certification does not authorize another account or family.
+
+Internal income/configuration with no external/manual provenance creates no additional requirement. The existing `loan_schedule` calculation source likewise reuses any authoritative external account source without manufacturing a manual certification. Liability payments can inherit provenance from their booked entry. Historical external/manual provenance remains subject to certification even if the account's current connection differs.
+
+Resolved sources use the existing `ProductionGate`, which rejects missing production certification, latest failed certification, missing or unauthorized reviewers, missing review dates and overdue reviews. Verified manual follows the existing manual certification policy and review interval. This gate grants no broader provider permissions and changes no reconciliation, source-authority, valuation, FX, income or forecast rules.
+
+Successful payloads contain the same structured result under `certification` and `pipeline.certification`. Each result contains canonical account/source identity, provider key, institution key, certification ID, approval and reason. Results are deduplicated by source/account and sorted deterministically, with no execution timestamp. Approval is evaluated at close execution time; a certification that expires before a later attempt blocks that attempt.
+
+A rejected source raises `CertificationGate::Rejected` before snapshot capture. The coordinator records structured support diagnostics and continues to the next family. Rejected attempts can be retried after certification is corrected. Existing snapshots remain immutable; a different certification state changes the digest and cannot silently replace a prior close.
+
+Pending entries excluded by the existing accounting scope do not create history-only certification requirements; their source is still checked if an included income or liability contributor independently references it. cTrader exclusion is applied after checking contributor labels, raw-source labels and explicit provider relationships for contradictions. Conflicting non-cTrader provenance fails closed without requesting cTrader certification.
+
+Account source identities follow their persisted supersession chains, including successors recorded against newer raw records. A single current account mapping is used; multiple current heads, missing account mappings, or conflicts with a raw record's explicit account remain unresolved. Effective mappings are cached by source entity for the close attempt.

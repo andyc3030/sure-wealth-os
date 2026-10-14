@@ -62,3 +62,13 @@ Rule-based operational output only:
 - NO ACTION — no deterministic exception
 
 AI/MCP remains read-only and cannot create or alter the authoritative close.
+
+## Phase 13 source certification
+
+After the existing quality gate passes, authoritative external/manual sources must pass `WealthOs::DailyClose::CertificationGate` before snapshot capture. See [connector certification](CONNECTOR_CERTIFICATION.md#phase-13-authoritative-use-gate) for persisted source mappings and rejection reasons.
+
+The certification gate applies to sources, with one canonical result reused across derived income, liability, performance and forecast contributors. Internal calculations/configuration without certifiable provenance add no requirement. Verified manual sources use their existing policy. cTrader is excluded from Phase 13 discovery and cannot create a certification rejection.
+
+Successful closes include sorted, deduplicated certification results in `payload.certification` and `payload.pipeline.certification`. These results contain no execution timestamp, preserving identical evidence for the same financial and certification state. Snapshot capture, SHA-256 canonicalization and idempotency rules are unchanged. A changed certification ID changes the payload; a revoked/overdue certification blocks a new attempt, including direct replay, without altering an existing snapshot.
+
+The coordinator logs certification-blocked families to the structured support log and continues other families independently. It continues to skip family/date snapshots already captured. OAuth onboarding, existing read-only permissions, accounting calculations, reconciliation, FX and quality controls are unchanged.

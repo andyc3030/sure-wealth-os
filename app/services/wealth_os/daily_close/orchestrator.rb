@@ -93,13 +93,16 @@ module WealthOs
           valuation: valuation
         ).call
 
+        certification = CertificationGate.call(family: family, close_date: close_date, at: now)
+        raise CertificationGate::Rejected.new(certification) unless certification.approved?
+
         payload = {
           "schema_version" => 2,
           "close_date" => close_date.iso8601,
           "cutoff_at" => cutoff_at.iso8601,
           "timezone" => timezone,
           "reporting_currency" => reporting_currency,
-          "pipeline" => pipeline_evidence(cutoff_at: cutoff_at, quality: quality),
+          "pipeline" => pipeline_evidence(cutoff_at: cutoff_at, quality: quality, certification: certification),
           "valuation" => valuation.as_json,
           "income_and_liabilities" => ledger.as_json,
           "performance" => performance,
@@ -107,6 +110,7 @@ module WealthOs
           "income_risk" => income_risk.as_json,
           "quality" => quality.as_json,
           "provenance" => provenance,
+          "certification" => certification.as_json,
           "action_now" => action_now
         }
 
@@ -131,7 +135,7 @@ module WealthOs
 
         attr_reader :family, :close_date, :now, :timezone, :reporting_currency
 
-        def pipeline_evidence(cutoff_at:, quality:)
+        def pipeline_evidence(cutoff_at:, quality:, certification:)
           {
             "sync" => { "status" => "settled", "incomplete_syncs" => 0 },
             "raw_ingest" => {
@@ -149,6 +153,7 @@ module WealthOs
             "forecast" => { "status" => "complete" },
             "income_risk" => { "status" => "complete", "model" => "deterministic_income_stress" },
             "quality" => { "status" => quality.status },
+            "certification" => certification.as_json,
             "snapshot" => { "status" => "immutable" },
             "action_now" => { "status" => "deterministic" }
           }
