@@ -301,7 +301,10 @@ module WealthOs
         end
 
         def source_system_for(row)
-          row.respond_to?(:source_system) ? row.source_system : row.source
+          return row.source_system if row.respond_to?(:source_system)
+          return row.source if row.respond_to?(:source)
+
+          nil
         end
 
         def register(account, identity, provider_key)
