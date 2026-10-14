@@ -323,7 +323,7 @@ class WealthOs::DailyClose::CertificationGateTest < ActiveSupport::TestCase
   test "normalized holdings resolve their persisted provider link without raw evidence" do
     certify
     link = AccountProvider.create!(account: @account, provider: plaid_accounts(:one))
-    holdings(:one).update_columns(account_id: @account.id, account_provider_id: link.id, date: @date, source: "plaid")
+    holdings(:one).update_columns(account_id: @account.id, account_provider_id: link.id, date: @date)
 
     assert_predicate gate, :approved?
     assert_equal 1, gate.sources.size
@@ -334,7 +334,7 @@ class WealthOs::DailyClose::CertificationGateTest < ActiveSupport::TestCase
     item = CtraderItem.create!(family: @family, name: "Excluded live account", environment: "live")
     provider = item.ctrader_accounts.create!(ctid_trader_account_id: "456", currency: "USD")
     link = AccountProvider.create!(account: @account, provider: provider)
-    holdings(:one).update_columns(account_id: @account.id, account_provider_id: link.id, date: @date, source: nil)
+    holdings(:one).update_columns(account_id: @account.id, account_provider_id: link.id, date: @date)
     raw = raw_source(source_system: "legacy-provider-label", account_provider: link)
     income(raw_source_record: raw)
     WealthOs::Connectors::ProductionGate.expects(:call).never
