@@ -125,14 +125,17 @@ Objective: establish current evidence and prevent accidental expansion of the
 existing reviewed model-visible read-only tool set.
 
 Scope: this audit, exact membership tests across admin/member and preview states,
-and an MCP tools/list contract test. Non-goals: rename/add/remove tools, change
-OAuth or sharing, recalculate financial metrics, enable cTrader, or claim live
-readiness. No migration, dependency or runtime behavior change is needed.
+an MCP tools/list contract test, and active-user enforcement in the static-token
+fallback. Non-goals: rename/add/remove tools, change OAuth or sharing, recalculate
+financial metrics, enable cTrader, or claim live readiness. No migration or new
+dependency is needed.
 
 Requirements: assert explicit tool names independently of registry constants;
 assert no duplicate names; cover both ordinary and admin callers with preview on
 and off; verify external MCP publication matches the maximum approved set.
 Preserve existing unknown/mutating-tool rejection coverage and all tenant gates.
+Reject static-token requests after the configured user is deactivated, including
+after a successful initialize. OAuth already has this active-user requirement.
 
 Security/failure behavior: an added/removed/renamed visible tool must fail the
 contract test and require deliberate review. Never derive expected values from
@@ -143,8 +146,8 @@ Validation: targeted Assistant and MCP tests, full unit/integration and system
 suites, Ruby/JS lint, Ruby/JS security, Pipelock, backup/restore and
 rollback/recovery. Record local unavailability; obtain actual green CI before
 merge. Review the final diff and test independence. Confirm exact PR head and
-clean working tree. Documentation-only/test-only changes do not require a new
-runtime image; retain the verified existing image identity.
+clean working tree. Verify the new runtime image after the authentication fix is
+merged; retain the prior verified image identity as rollback evidence.
 
 Prompt review: the proposed nine-name surface contradicts the intentionally
 evolved current implementation. Locking current membership preserves accepted
