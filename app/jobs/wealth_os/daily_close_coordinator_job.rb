@@ -44,6 +44,15 @@ module WealthOs
           Rails.logger.warn(
             "Wealth OS daily close deferred for family #{family.id}: "             "#{error.class}: #{error.message}"
           )
+        rescue DailyClose::CertificationGate::Rejected => error
+          DebugLogEntry.capture(
+            category: "daily_close",
+            level: "error",
+            message: error.message,
+            source: "wealth_os_daily_close",
+            family: family,
+            metadata: { close_date: close_date.iso8601, certification: error.result.as_json }
+          )
         rescue DailyClose::Orchestrator::QualityGateFailed => error
           Rails.logger.error(
             "Wealth OS daily close blocked for family #{family.id}: "             "#{error.message}; quality=#{error.quality.as_json}; action_now=#{error.action_now}"
