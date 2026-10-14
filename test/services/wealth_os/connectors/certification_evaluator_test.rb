@@ -9,6 +9,25 @@ class WealthOs::Connectors::CertificationEvaluatorTest < ActiveSupport::TestCase
     @reviewer = users(:family_admin)
   end
 
+  test "review deadline respects the policy interval across daylight-saving changes" do
+    profile = WealthOs::Connectors::CertificationPolicy.profile!("plaid_uk")
+    checked_at = Time.find_zone!("America/New_York").parse("2026-10-08 17:00:00")
+
+    certification = WealthOs::Connectors::CertificationEvaluator.call(
+      family: @family,
+      provider_key: "plaid_uk",
+      institution_key: "ins_63",
+      environment: "production",
+      reviewed_by: @reviewer,
+      observed_scope: profile.expected_scope,
+      checks: profile.required_checks.index_with { true },
+      evidence: profile.required_checks.index_with { |key| "evidence for #{key}" },
+      checked_at: checked_at
+    )
+
+    assert_equal checked_at.utc + profile.review_interval_days.days, certification.review_due_at
+  end
+
   test "passes cTrader only with accounts scope and every required live check" do
     checks = @profile.required_checks.index_with { true }
     evidence = @profile.required_checks.index_with { |key| "evidence for #{key}" }
