@@ -193,6 +193,8 @@ class McpControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "env token loses access when its configured user is deactivated" do
+    @user = users(:family_member)
+
     with_mcp_env do
       post "/mcp", params: jsonrpc_request("initialize").to_json,
            headers: mcp_headers(@token)
