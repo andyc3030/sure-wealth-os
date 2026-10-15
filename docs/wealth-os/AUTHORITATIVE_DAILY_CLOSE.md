@@ -22,6 +22,9 @@ The close path is:
 - cross-currency FX never silently falls back to 1;
 - stale weekend/holiday FX is explicit and lowers quality to WARNING;
 - current income states and actual close-date cash received are stored separately;
+- received cash is also captured as MTD, YTD and trailing-12-month windows;
+- historical received-income windows translate each receipt using the FX rate resolved for its received date, not the close-date FX rate;
+- the trailing-12-month window is inclusive from the day after the same calendar date one year earlier through the close date;
 - principal repayment is not financing expense;
 - future income and scheduled liabilities are projected over 7/30/90/365 days;
 - undated income stays undated and is counted explicitly.
