@@ -10,6 +10,29 @@ class McpControllerTest < ActionDispatch::IntegrationTest
 
   # -- Authentication --
 
+  test "tools list exposes exactly the reviewed admin preview read contract" do
+    @user.update!(preferences: (@user.preferences || {}).merge("preview_features_enabled" => true))
+
+    with_mcp_env do
+      post "/mcp", params: jsonrpc_request("tools/list").to_json,
+           headers: mcp_headers(@token)
+
+      assert_response :ok
+      names = JSON.parse(response.body).fetch("result").fetch("tools").map { |tool| tool.fetch("name") }
+      expected = %w[
+        get_transactions get_recurring_transactions get_accounts get_holdings
+        get_balance_sheet get_income_statement get_budget search_family_files
+        get_tags get_categories get_merchants get_authoritative_daily_close
+        get_authoritative_metric_provenance get_research_assessments
+        get_investment_recommendations list_account_statements
+        get_account_statement get_statement_coverage get_valuations get_insights
+        get_bills get_bill_details get_paycheck_plan get_bill_audit
+      ]
+      assert_equal expected.sort, names.sort
+      assert_equal names.uniq, names
+    end
+  end
+
   test "returns 401 without authorization header" do
     post "/mcp", params: jsonrpc_request("initialize").to_json,
          headers: { "Content-Type" => "application/json" }
@@ -166,6 +189,25 @@ class McpControllerTest < ActionDispatch::IntegrationTest
            headers: mcp_headers(@token)
 
       assert_response :ok
+    end
+  end
+
+  test "env token loses access when its configured user is deactivated" do
+    @user = users(:family_member)
+
+    with_mcp_env do
+      post "/mcp", params: jsonrpc_request("initialize").to_json,
+           headers: mcp_headers(@token)
+      assert_response :ok
+
+      @user.update!(active: false)
+
+      post "/mcp", params: jsonrpc_request("tools/list").to_json,
+           headers: mcp_headers(@token)
+
+      assert_response :unauthorized
+      assert_equal "unauthorized", JSON.parse(response.body).fetch("error")
+      assert_not JSON.parse(response.body).key?("result")
     end
   end
 
