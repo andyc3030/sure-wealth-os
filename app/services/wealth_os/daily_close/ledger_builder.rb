@@ -4,13 +4,17 @@ module WealthOs
   module DailyClose
     class LedgerBuilder
       Result = Data.define(
-        :income_by_state, :received_cash_today, :principal_paid_today,
+        :income_by_state, :received_cash_today, :received_cash_mtd,
+        :received_cash_ytd, :received_cash_ttm, :principal_paid_today,
         :financing_cost_today, :insurance_paid_today
       ) do
         def as_json(*)
           {
             "income_by_state" => income_by_state.transform_values { |value| value.to_s("F") },
             "received_cash_today" => received_cash_today.to_s("F"),
+            "received_cash_mtd" => received_cash_mtd.to_s("F"),
+            "received_cash_ytd" => received_cash_ytd.to_s("F"),
+            "received_cash_ttm" => received_cash_ttm.to_s("F"),
             "principal_paid_today" => principal_paid_today.to_s("F"),
             "financing_cost_today" => financing_cost_today.to_s("F"),
             "insurance_paid_today" => insurance_paid_today.to_s("F")
@@ -28,12 +32,23 @@ module WealthOs
       def call
         income_by_state = IncomeEvent::STATES.index_with { BigDecimal("0") }
         received_cash_today = BigDecimal("0")
+        received_cash_mtd = BigDecimal("0")
+        received_cash_ytd = BigDecimal("0")
+        received_cash_ttm = BigDecimal("0")
+
+        month_start = close_date.beginning_of_month
+        year_start = close_date.beginning_of_year
+        ttm_start = close_date.prev_year + 1.day
 
         IncomeEvent.where(family_id: family.id).find_each do |event|
           income_by_state[event.state] += convert(event.net_amount, event.currency)
-          if event.received? && event.received_on == close_date
-            received_cash_today += convert(event.received_cash, event.currency)
-          end
+          next unless event.received? && event.received_on && event.received_on <= close_date
+
+          received = convert_at(event.received_cash, event.currency, event.received_on)
+          received_cash_today += received if event.received_on == close_date
+          received_cash_mtd += received if event.received_on >= month_start
+          received_cash_ytd += received if event.received_on >= year_start
+          received_cash_ttm += received if event.received_on >= ttm_start
         end
 
         actual_payments = LiabilityPayment.where(
@@ -52,7 +67,16 @@ module WealthOs
           insurance += convert(payment.insurance_amount, payment.currency)
         end
 
-        Result.new(income_by_state.freeze, received_cash_today, principal, financing, insurance)
+        Result.new(
+          income_by_state.freeze,
+          received_cash_today,
+          received_cash_mtd,
+          received_cash_ytd,
+          received_cash_ttm,
+          principal,
+          financing,
+          insurance
+        )
       end
 
       private
@@ -60,7 +84,11 @@ module WealthOs
         attr_reader :family, :close_date, :reporting_currency, :fx_resolver
 
         def convert(amount, currency)
-          fx_resolver.resolve(from: currency, to: reporting_currency, date: close_date).rate * amount.to_d
+          convert_at(amount, currency, close_date)
+        end
+
+        def convert_at(amount, currency, date)
+          fx_resolver.resolve(from: currency, to: reporting_currency, date: date).rate * amount.to_d
         end
     end
   end
